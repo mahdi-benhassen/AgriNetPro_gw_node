@@ -28,8 +28,8 @@ static void on_node_data_received(const zigbee_coord_node_data_t *data)
     /* Feed valid readings into the rule engine */
     if (!isnan(data->temperature) || !isnan(data->humidity)) {
         node_telemetry_t telemetry = {
-            .temperature = isnan(data->temperature) ? 0.0f : data->temperature,
-            .humidity    = isnan(data->humidity)     ? 0.0f : data->humidity,
+            .temperature = data->temperature,
+            .humidity    = data->humidity,
         };
         rule_engine_evaluate((uint32_t)data->short_addr, &telemetry);
     }
