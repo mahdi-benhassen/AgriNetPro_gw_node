@@ -186,8 +186,18 @@ esp_err_t zigbee_coordinator_init(zigbee_coord_data_cb_t data_cb)
     s_data_cb = data_cb;
 
     esp_zb_platform_config_t platform_cfg = {
-        .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
-        .host_config  = ESP_ZB_DEFAULT_HOST_CONFIG(),
+        .radio_config = {
+            .radio_mode = ZB_RADIO_MODE_UART_RCP,
+            .uart_config = {
+                .port = CONFIG_ZB_RCP_UART_PORT,
+                .rx_pin = CONFIG_ZB_RCP_UART_RX_PIN,
+                .tx_pin = CONFIG_ZB_RCP_UART_TX_PIN,
+                .baud_rate = CONFIG_ZB_RCP_UART_BAUDRATE,
+            },
+        },
+        .host_config = {
+            .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,
+        },
     };
     ESP_ERROR_CHECK(esp_zb_platform_config(&platform_cfg));
 

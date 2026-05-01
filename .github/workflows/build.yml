@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  build-gateway:
-    name: Build Gateway (ESP32-C6)
+  build-gateway-host:
+    name: Build Gateway Host (ESP32-S3)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,15 +16,31 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Build Gateway
+      - name: Build Gateway Host
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v6.0
-          target: esp32c6
+          esp_idf_version: v5.2
+          target: esp32s3
           path: 'gateway'
 
+  build-gateway-rcp:
+    name: Build Gateway RCP (ESP32-H2)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Build RCP
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.2
+          target: esp32h2
+          path: 'rcp_h2'
+
   build-node:
-    name: Build Node (ESP32-H2)
+    name: Build Node (ESP32-C6)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,6 +51,6 @@ jobs:
       - name: Build Node
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v6.0
-          target: esp32h2
+          esp_idf_version: v5.2
+          target: esp32c6
           path: 'node'
