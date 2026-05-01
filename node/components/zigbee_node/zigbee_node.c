@@ -230,6 +230,19 @@ esp_err_t zigbee_node_report_battery(uint32_t voltage_mv)
     return ESP_OK;
 }
 
+static void trigger_sleep_cb(uint8_t param)
+{
+    if (s_sleep_cb) {
+        s_sleep_cb();
+    }
+}
+
+void zigbee_node_signal_tx_done(void)
+{
+    /* Simulate a delay for the stack to process and send MAC/APS ACKs */
+    esp_zb_scheduler_alarm((esp_zb_callback_t)trigger_sleep_cb, 0, 1500);
+}
+
 bool zigbee_node_is_connected(void)
 {
     return s_connected;

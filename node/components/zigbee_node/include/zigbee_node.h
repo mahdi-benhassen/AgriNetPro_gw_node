@@ -19,6 +19,7 @@ esp_err_t zigbee_node_report_temperature(float temp_celsius);
 esp_err_t zigbee_node_report_humidity(float humidity_pct);
 esp_err_t zigbee_node_report_battery(uint32_t voltage_mv);
 bool zigbee_node_is_connected(void);
+void zigbee_node_signal_tx_done(void);
 
 #ifdef __cplusplus
 }

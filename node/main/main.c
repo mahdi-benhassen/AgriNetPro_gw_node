@@ -83,8 +83,12 @@ void app_main(void)
     zigbee_node_report_humidity(humidity);
     zigbee_node_report_battery(batt_mv);
 
-    /* Give the stack time to actually send the frames */
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    /* Signal the stack to finish up and notify us */
+    zigbee_node_signal_tx_done();
+
+    /* Wait for the stack to actually send the frames */
+    ESP_LOGI(TAG, "Waiting for Zigbee transmission to complete...");
+    xEventGroupWaitBits(s_app_event_group, APP_SLEEP_READY_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(5000));
     ESP_LOGI(TAG, "Zigbee transmission complete.");
 
 sleep:
