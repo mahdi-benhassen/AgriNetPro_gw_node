@@ -19,7 +19,7 @@ jobs:
       - name: Build Gateway
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v5.1
+          esp_idf_version: v6.0
           target: esp32c6
           path: 'gateway'
 
@@ -35,6 +35,6 @@ jobs:
       - name: Build Node
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v5.1
+          esp_idf_version: v6.0
           target: esp32h2
           path: 'node'
