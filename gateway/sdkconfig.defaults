@@ -1,0 +1,24 @@
+# AgriNetPro Gateway - sdkconfig.defaults
+# Target: ESP32-C6 (native 802.15.4) or ESP32-S3 + ESP32-H2 (RCP)
+
+# Zigbee
+CONFIG_ZB_ENABLED=y
+CONFIG_ZB_ZCZR=y
+CONFIG_ZB_RADIO_NATIVE=y
+
+# Partition table (OTA-ready)
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Wi-Fi (for cloud connectivity)
+CONFIG_ESP_WIFI_ENABLED=y
+
+# Log level
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# Stack sizes
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+
+# Flash size
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
