@@ -24,7 +24,7 @@ jobs:
           path: 'gateway'
 
   build-node:
-    name: Build Node (ESP32-C6)
+    name: Build Node (ESP32-H2)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,5 +36,5 @@ jobs:
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: v5.1
-          target: esp32c6
+          target: esp32h2
           path: 'node'
