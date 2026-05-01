@@ -2,7 +2,8 @@
 
 ## 1. Introduction
 
-This document outlines the high-level embedded software architecture for the AgriNetPro system, which comprises an **IoT Gateway** (Dual-SoC: ESP32-S3 Host + ESP32-H2 RCP) and multiple ultra-low-power **IoT Nodes** (ESP32-C6). The system is built on **ESP-IDF** (FreeRTOS) and is designed for industrial deployment, emphasizing modularity, testability, and reliability.
+This document outlines the high-level embedded software architecture for the AgriNetPro system, which comprises an **IoT Gateway** (Dual-SoC: ESP32-S3 Host + ESP32-H2 RCP) and multiple ultra-low-power **IoT Nodes** (ESP32-H2).
+ The system is built on **ESP-IDF** (FreeRTOS) and is designed for industrial deployment, emphasizing modularity, testability, and reliability.
 
 ### 1.1 Dual-SoC Gateway Architecture
 To ensure high-performance Wi-Fi and Zigbee coexistence, the Gateway uses:

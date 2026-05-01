@@ -19,7 +19,7 @@ jobs:
       - name: Build Gateway Host
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v5.2
+          esp_idf_version: v6.0
           target: esp32s3
           path: 'gateway'
 
@@ -35,12 +35,12 @@ jobs:
       - name: Build RCP
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v5.2
+          esp_idf_version: v6.0
           target: esp32h2
           path: 'rcp_h2'
 
   build-node:
-    name: Build Node (ESP32-C6)
+    name: Build Node (ESP32-H2)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,6 +51,6 @@ jobs:
       - name: Build Node
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v5.2
-          target: esp32c6
+          esp_idf_version: v6.0
+          target: esp32h2
           path: 'node'

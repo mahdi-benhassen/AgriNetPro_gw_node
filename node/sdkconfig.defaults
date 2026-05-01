@@ -1,5 +1,8 @@
 # AgriNetPro Node - sdkconfig.defaults
-# Target: ESP32-C6 (has native 802.15.4 radio)
+# Target: ESP32-H2 (802.15.4 SoC)
+
+# Target Chip
+CONFIG_IDF_TARGET="esp32h2"
 
 # Zigbee
 CONFIG_ZB_ENABLED=y

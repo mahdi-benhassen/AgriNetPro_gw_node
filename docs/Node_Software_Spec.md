@@ -3,7 +3,7 @@
 ## 1. Overview
 The IoT Node is an ultra-low-power edge device designed for battery/solar operation. It collects environmental data (temperature, humidity, soil moisture) and communicates via Zigbee or Thread to the Gateway.
 
-**Target Chip**: ESP32-C6 (Native 802.15.4 + Wi-Fi 6 + BLE).
+**Target Chip**: ESP32-H2 (Native 802.15.4 + BLE).
 
 ## 2. Power Management Strategy
 
