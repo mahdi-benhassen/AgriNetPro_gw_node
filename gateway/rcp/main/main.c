@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "esp_zigbee_rcp.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 
@@ -18,7 +17,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Starting Zigbee RCP for ESP32-H2");
 
     /* Initialize Zigbee RCP */
-    esp_zb_rcp_init();
+    // Note: The actual RCP firmware is usually the ot_rcp example from esp-idf/openthread.
+    // esp_zb_rcp_init();
 
     ESP_LOGI(TAG, "Zigbee RCP is running and waiting for Host (S3) commands via UART");
 }
