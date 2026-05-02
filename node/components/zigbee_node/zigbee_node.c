@@ -1,5 +1,5 @@
 #include "zigbee_node.h"
-#include "esp_zigbee_core.h"
+#include "esp_zigbee.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
