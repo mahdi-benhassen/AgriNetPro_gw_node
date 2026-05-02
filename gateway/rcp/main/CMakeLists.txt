@@ -1,3 +1,3 @@
 idf_component_register(SRCS "main.c"
                     INCLUDE_DIRS "."
-                    REQUIRES esp-zigbee-lib)
+                    REQUIRES espressif__esp-zigbee-lib nvs_flash)
