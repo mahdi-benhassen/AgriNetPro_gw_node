@@ -21,7 +21,7 @@ jobs:
         with:
           esp_idf_version: v6.0
           target: esp32s3
-          path: 'gateway'
+          path: 'gateway/host'
 
   build-gateway-rcp:
     name: Build Gateway RCP (ESP32-H2)
@@ -37,7 +37,7 @@ jobs:
         with:
           esp_idf_version: v6.0
           target: esp32h2
-          path: 'rcp_h2'
+          path: 'gateway/rcp'
 
   build-node:
     name: Build Node (ESP32-H2)
