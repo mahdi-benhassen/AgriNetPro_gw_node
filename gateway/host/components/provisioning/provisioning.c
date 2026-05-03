@@ -23,7 +23,7 @@ static bool s_provisioning_done = false;
 static void prov_event_handler(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data)
 {
-    if (event_id == WIFI_PROV_EVENT) {
+    if (event_base == WIFI_PROV_EVENT) {
         switch (event_id) {
         case WIFI_PROV_START:
             ESP_LOGI(TAG, "Provisioning started");
@@ -47,8 +47,6 @@ static void prov_event_handler(void *arg, esp_event_base_t event_base,
         default:
             break;
         }
-    } else if (event_id == WIFI_PROV_SCAN_NEXT_ENTRY) {
-        ESP_LOGI(TAG, "Scanning next Wi-Fi entry");
     }
 }
 
@@ -78,36 +76,30 @@ esp_err_t provisioning_start(void)
 
     ESP_LOGI(TAG, "No credentials found, starting BLE provisioning");
 
-    esp_err_t ret = wifi_prov_mgr_init();
+    wifi_prov_mgr_config_t config = WIFI_PROV_MGR_CONFIG_INIT();
+    config.scheme = wifi_prov_scheme_ble;
+    config.scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM;
+
+    esp_err_t ret = wifi_prov_mgr_init(&config);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to init provisioning manager");
         return ret;
     }
 
-    ret = wifi_prov_mgr_register_event_handler(&prov_event_handler);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register event handler");
-        wifi_prov_mgr_deinit();
-        return ret;
-    }
+    esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, prov_event_handler, NULL);
 
-    wifi_prov_mgr_config_t config = {
-        .scheme = wifi_prov_scheme_ble,
-        .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
-    };
-
-    ret = wifi_prov_mgr_start_provisioning(&config, NULL, PROV_SERVICE_NAME, NULL);
+    ret = wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_1, NULL, PROV_SERVICE_NAME, NULL);
     if (ret != ESP_OK) {
         ESP_LOGW(TAG, "BLE provisioning failed, falling back to SoftAP");
         wifi_prov_mgr_deinit();
 
-        ret = wifi_prov_mgr_init();
+        config.scheme = wifi_prov_scheme_softap;
+        ret = wifi_prov_mgr_init(&config);
         if (ret != ESP_OK) {
             return ret;
         }
 
-        config.scheme = wifi_prov_scheme_softap;
-        ret = wifi_prov_mgr_start_provisioning(&config, NULL, PROV_SERVICE_NAME, NULL);
+        ret = wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_1, NULL, PROV_SERVICE_NAME, NULL);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "SoftAP provisioning also failed");
             wifi_prov_mgr_deinit();
@@ -115,7 +107,7 @@ esp_err_t provisioning_start(void)
         }
     }
 
-    ESP_LOGI(TAG, "BLE provisioning active. Use the AgriNetPro app to configure Wi-Fi");
+    ESP_LOGI(TAG, "Provisioning active. Use the AgriNetPro app to configure Wi-Fi");
     return ESP_OK;
 }
 

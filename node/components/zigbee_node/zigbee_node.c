@@ -17,7 +17,7 @@ static bool s_connected = false;
 
 static void retry_steering_cb(uint8_t mode)
 {
-    esp_zb_bdb_start_top_level_commissioning((esp_zb_bdb_mode_t)mode);
+    esp_zb_bdb_start_top_level_commissioning(mode);
 }
 
 /* ---- Zigbee Signal Handler (called by the stack) ---- */

@@ -13,10 +13,12 @@ static char s_firmware_url[256] = {0};
 static void ota_task(void *arg)
 {
     esp_err_t err;
+    esp_http_client_config_t http_config = {
+        .url = s_firmware_url,
+        .transport_type = "https",
+    };
     esp_https_ota_config_t ota_config = {
-        .http_config = {
-            .url = s_firmware_url,
-        },
+        .http_config = &http_config,
     };
 
     s_ota_state = OTA_IN_PROGRESS;

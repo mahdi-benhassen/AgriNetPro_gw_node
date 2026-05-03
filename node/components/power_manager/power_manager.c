@@ -28,7 +28,7 @@ esp_err_t power_manager_configure_sleep(uint32_t sleep_duration_sec, bool enable
         };
         gpio_config(&wkup_conf);
 
-        ret = esp_sleep_enable_ext0_wakeup(POWER_MGR_WAKEUP_GPIO, 0);
+        ret = esp_sleep_enable_ext1_wakeup(BIT64(POWER_MGR_WAKEUP_GPIO), ESP_EXT1_WAKEUP_ANY_LOW);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Failed to configure external wakeup");
             return ret;

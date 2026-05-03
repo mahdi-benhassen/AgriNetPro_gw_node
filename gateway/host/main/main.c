@@ -77,11 +77,6 @@ static void transition_to(gw_state_t new_state)
     s_state = new_state;
 }
 
-static bool has_wifi_credentials(void)
-{
-    return provisioning_is_done();
-}
-
 static esp_err_t enter_fault_state(const char *reason)
 {
     ESP_LOGE(TAG, "Entering FAULT state: %s", reason);

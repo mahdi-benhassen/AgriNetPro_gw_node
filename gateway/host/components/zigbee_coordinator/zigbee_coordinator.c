@@ -129,7 +129,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         } else {
             ESP_LOGW(TAG, "Network formation failed: 0x%x, retrying...", err_status);
             esp_zb_scheduler_alarm(
-                (esp_zb_callback_t)esp_zb_bdb_start_top_level_commissioning,
+                esp_zb_bdb_start_top_level_commissioning,
                 ESP_ZB_BDB_MODE_NETWORK_FORMATION, 1000);
         }
         break;
