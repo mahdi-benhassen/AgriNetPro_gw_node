@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ dual_soc_gw_main ]
   pull_request:
-    branches: [ master ]
+    branches: [ dual_soc_gw_main ]
 
 jobs:
   build-gateway-host:
