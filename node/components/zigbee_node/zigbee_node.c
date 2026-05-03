@@ -72,7 +72,7 @@ static void zigbee_task(void *pvParameters)
     /* Configure as Zigbee End Device */
     esp_zb_cfg_t zb_nwk_cfg = {
         .esp_zb_role = ESP_ZB_DEVICE_TYPE_ED,
-        .install_code_policy = ESP_ZB_INSTALL_CODE_POLICY_ENABLE,
+        .install_code_policy = false,
     };
     esp_zb_init(&zb_nwk_cfg);
 
@@ -145,10 +145,10 @@ esp_err_t zigbee_node_init(zigbee_node_sleep_ready_cb_t sleep_cb)
 
     esp_zb_platform_config_t platform_cfg = {
         .radio_config = {
-            .radio_mode = ESP_ZB_RADIO_MODE_NATIVE,
+            .radio_mode = ZB_RADIO_MODE_NATIVE,
         },
         .host_config = {
-            .host_connection_mode = ESP_ZB_HOST_CONNECTION_MODE_NONE,
+            .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,
         },
     };
     ESP_ERROR_CHECK(esp_zb_platform_config(&platform_cfg));
