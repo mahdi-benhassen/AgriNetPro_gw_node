@@ -15,6 +15,13 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # Wi-Fi (for cloud connectivity)
 CONFIG_ESP_WIFI_ENABLED=y
 
+# Bluetooth/BLE (for provisioning)
+CONFIG_BT_ENABLED=y
+CONFIG_BTDM_ENABLED=y
+
+# WiFi Provisioning
+CONFIG_WIFI_PROV_BLE_ENABLED=y
+
 # Log level
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 
