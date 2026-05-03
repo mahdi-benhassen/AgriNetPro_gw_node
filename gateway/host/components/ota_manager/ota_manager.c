@@ -15,7 +15,7 @@ static void ota_task(void *arg)
     esp_err_t err;
     esp_http_client_config_t http_config = {
         .url = s_firmware_url,
-        .transport_type = "https",
+        .transport_type = HTTP_TRANSPORT_UNKNOWN,
     };
     esp_https_ota_config_t ota_config = {
         .http_config = &http_config,

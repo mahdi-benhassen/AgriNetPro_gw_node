@@ -81,7 +81,7 @@ esp_err_t provisioning_start(void)
         .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
     };
 
-    esp_err_t ret = wifi_prov_mgr_init(&config);
+    esp_err_t ret = wifi_prov_mgr_init(config);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to init provisioning manager");
         return ret;
@@ -95,7 +95,7 @@ esp_err_t provisioning_start(void)
         wifi_prov_mgr_deinit();
 
         config.scheme = wifi_prov_scheme_softap;
-        ret = wifi_prov_mgr_init(&config);
+        ret = wifi_prov_mgr_init(config);
         if (ret != ESP_OK) {
             return ret;
         }

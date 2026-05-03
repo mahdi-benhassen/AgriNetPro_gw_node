@@ -11,6 +11,12 @@ static const char *TAG = "ZB_COORD";
 
 static zigbee_coord_data_cb_t s_data_cb = NULL;
 
+static void zb_bdb_start_top_level_wrapper(uint8_t param)
+{
+    (void)param;
+    esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_FORMATION);
+}
+
 static void configure_rcp_uart(void)
 {
     uart_config_t uart_config = {
@@ -129,7 +135,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         } else {
             ESP_LOGW(TAG, "Network formation failed: 0x%x, retrying...", err_status);
             esp_zb_scheduler_alarm(
-                esp_zb_bdb_start_top_level_commissioning,
+                zb_bdb_start_top_level_wrapper,
                 ESP_ZB_BDB_MODE_NETWORK_FORMATION, 1000);
         }
         break;
