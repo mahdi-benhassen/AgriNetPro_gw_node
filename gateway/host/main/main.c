@@ -69,6 +69,14 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    /* Initialize zb_storage partition for Zigbee stack v2.x */
+    ret = nvs_flash_init_partition("zb_storage");
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase_partition("zb_storage"));
+        ret = nvs_flash_init_partition("zb_storage");
+    }
+    ESP_ERROR_CHECK(ret);
+
     /* ---- 1. Initialize Hardware Actuators ---- */
     ESP_ERROR_CHECK(hal_actuator_init());
 
