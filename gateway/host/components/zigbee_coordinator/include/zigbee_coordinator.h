@@ -10,6 +10,14 @@ extern "C" {
 #define ZIGBEE_COORD_ENDPOINT           1
 #define ZIGBEE_COORD_CHANNEL_MASK       ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK
 
+/* UART pins for ESP32-S3 Host <-> ESP32-H2 RCP link */
+#define ZIGBEE_COORD_UART_NUM           UART_NUM_1
+#define ZIGBEE_COORD_UART_BAUD          460800
+#define ZIGBEE_COORD_UART_TX_PIN        (GPIO_NUM_17)
+#define ZIGBEE_COORD_UART_RX_PIN        (GPIO_NUM_18)
+#define ZIGBEE_COORD_UART_RTS_PIN       (GPIO_NUM_19)
+#define ZIGBEE_COORD_UART_CTS_PIN       (GPIO_NUM_20)
+
 /** Telemetry data received from a Zigbee End Device */
 typedef struct {
     uint16_t short_addr;        /**< Network short address of the node */

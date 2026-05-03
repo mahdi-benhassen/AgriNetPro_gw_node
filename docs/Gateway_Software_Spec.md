@@ -3,16 +3,26 @@
 ## 1. Overview
 The Gateway acts as the central hub, bridging the local mesh network (Zigbee/Thread) to the cloud/local network via Wi-Fi or Ethernet. It also evaluates local rules to ensure autonomous operation even when offline.
 
+**Architecture**: Dual-SoC design.
+- **Host (ESP32-S3)**: Handles application logic, Wi-Fi, MQTT, and Rule Engine.
+- **RCP (ESP32-H2)**: Radio Co-Processor handling the 802.15.4 stack (Zigbee/Thread).
+
 ## 2. Software Components
 
 ### 2.1 `network_manager`
-*   **Responsibility**: Manages all network interfaces (Wi-Fi Station/AP, Ethernet, Zigbee Coordinator / Thread Border Router).
+*   **Responsibility**: Manages all network interfaces (Wi-Fi Station/AP, Ethernet).
 *   **Features**:
     *   Smart provisioning (BLE or SoftAP) for initial setup.
     *   Automatic connection recovery and fallback strategies.
-    *   Routing traffic between IP interfaces and the PAN.
 
-### 2.2 `mqtt_client_service`
+### 2.2 `zigbee_coordinator` (Host Side)
+*   **Responsibility**: Manages the Zigbee network by communicating with the ESP32-H2 RCP.
+*   **Features**:
+    *   UART communication with the RCP SoC.
+    *   Network formation and steering.
+    *   Device management and attribute reporting handling.
+
+### 2.3 `mqtt_client_service`
 *   **Responsibility**: Handles bi-directional telemetry and command traffic with the backend.
 *   **Features**:
     *   QoS 1 message delivery for critical events.

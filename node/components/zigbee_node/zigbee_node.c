@@ -14,7 +14,11 @@ static const char *TAG = "ZB_NODE";
 static EventGroupHandle_t s_zb_event_group = NULL;
 static zigbee_node_sleep_ready_cb_t s_sleep_cb = NULL;
 static bool s_connected = false;
-static uint8_t s_reports_pending = 0;
+
+static void retry_steering_cb(uint8_t mode)
+{
+    esp_zb_bdb_start_top_level_commissioning(mode);
+}
 
 /* ---- Zigbee Signal Handler (called by the stack) ---- */
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
@@ -36,8 +40,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
             esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_STEERING);
         } else {
             ESP_LOGW(TAG, "Init failed (0x%x), retrying...", err_status);
-            esp_zb_scheduler_alarm(
-                (esp_zb_callback_t)esp_zb_bdb_start_top_level_commissioning,
+            esp_zb_scheduler_alarm((esp_zb_callback_t)retry_steering_cb,
                 ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         break;
@@ -54,8 +57,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
             }
         } else {
             ESP_LOGW(TAG, "Steering failed (0x%x), retrying...", err_status);
-            esp_zb_scheduler_alarm(
-                (esp_zb_callback_t)esp_zb_bdb_start_top_level_commissioning,
+            esp_zb_scheduler_alarm((esp_zb_callback_t)retry_steering_cb,
                 ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         break;
@@ -70,11 +72,14 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 static void zigbee_task(void *pvParameters)
 {
     /* Configure as Zigbee End Device */
-    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
+    esp_zb_cfg_t zb_nwk_cfg = {
+        .esp_zb_role = ESP_ZB_DEVICE_TYPE_ED,
+        .install_code_policy = false,
+    };
     esp_zb_init(&zb_nwk_cfg);
 
     /* --- Create cluster list for our sensor endpoint --- */
-    esp_zb_cluster_list_t *cluster_list = esp_zb_cluster_list_create();
+    esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
 
     /* Basic Cluster */
     esp_zb_basic_cluster_cfg_t basic_cfg = {
@@ -100,8 +105,6 @@ static void zigbee_task(void *pvParameters)
     /* Temperature Measurement Cluster */
     esp_zb_temperature_meas_cluster_cfg_t temp_cfg = {
         .measured_value     = 0xFFFF, /* invalid until first reading */
-        .min_measured_value = -4000,  /* -40.00 C */
-        .max_measured_value = 12500,  /* 125.00 C */
     };
     esp_zb_cluster_list_add_temperature_meas_cluster(cluster_list,
         esp_zb_temperature_meas_cluster_create(&temp_cfg),
@@ -110,8 +113,6 @@ static void zigbee_task(void *pvParameters)
     /* Relative Humidity Cluster */
     esp_zb_humidity_meas_cluster_cfg_t hum_cfg = {
         .measured_value     = 0xFFFF,
-        .min_measured_value = 0,
-        .max_measured_value = 10000,  /* 100.00 % */
     };
     esp_zb_cluster_list_add_humidity_meas_cluster(cluster_list,
         esp_zb_humidity_meas_cluster_create(&hum_cfg),
@@ -145,8 +146,12 @@ esp_err_t zigbee_node_init(zigbee_node_sleep_ready_cb_t sleep_cb)
     }
 
     esp_zb_platform_config_t platform_cfg = {
-        .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
-        .host_config  = ESP_ZB_DEFAULT_HOST_CONFIG(),
+        .radio_config = {
+            .radio_mode = ZB_RADIO_MODE_NATIVE,
+        },
+        .host_config = {
+            .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,
+        },
     };
     ESP_ERROR_CHECK(esp_zb_platform_config(&platform_cfg));
 
@@ -176,7 +181,6 @@ esp_err_t zigbee_node_report_temperature(float temp_celsius)
         .zcl_basic_cmd.src_endpoint = ZIGBEE_NODE_ENDPOINT,
         .address_mode   = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
         .clusterID      = ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
-        .cluster_role   = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
     };
     esp_zb_zcl_report_attr_cmd_req(&cmd);
 
@@ -206,7 +210,6 @@ esp_err_t zigbee_node_report_humidity(float humidity_pct)
         .zcl_basic_cmd.src_endpoint = ZIGBEE_NODE_ENDPOINT,
         .address_mode   = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
         .clusterID      = ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,
-        .cluster_role   = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
     };
     esp_zb_zcl_report_attr_cmd_req(&cmd);
 
@@ -227,6 +230,8 @@ esp_err_t zigbee_node_report_battery(uint32_t voltage_mv)
     }
     ESP_LOGI(TAG, "Reported Battery: %lu mV (ZCL: %u, SoC: %u%%)",
              voltage_mv, battery_voltage, battery_pct / 2);
+
+    /* TODO: Add Power Configuration Cluster attributes and reporting */
     return ESP_OK;
 }
 

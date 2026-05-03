@@ -1,10 +1,12 @@
 # AgriNetPro Gateway - sdkconfig.defaults
-# Target: ESP32-C6 (native 802.15.4) or ESP32-S3 + ESP32-H2 (RCP)
+# Target: ESP32-S3 (Wi-Fi host) + ESP32-H2 (802.15.4 RCP)
+
+# Target Chip
+CONFIG_IDF_TARGET="esp32s3"
 
 # Zigbee
 CONFIG_ZB_ENABLED=y
 CONFIG_ZB_ZCZR=y
-CONFIG_ZB_RADIO_NATIVE=y
 
 # Partition table (OTA-ready)
 CONFIG_PARTITION_TABLE_CUSTOM=y
@@ -12,6 +14,12 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 
 # Wi-Fi (for cloud connectivity)
 CONFIG_ESP_WIFI_ENABLED=y
+
+# Bluetooth/BLE (for provisioning)
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_CLASSIC_ENABLED=n
 
 # Log level
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
@@ -22,3 +30,8 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
 # Flash size
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+
+# PSRAM (Highly recommended for S3 host in large mesh networks)
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_QUAD=y
+CONFIG_SPIRAM_TYPE_AUTO=y
