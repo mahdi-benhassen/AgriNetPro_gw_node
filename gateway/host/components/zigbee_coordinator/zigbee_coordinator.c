@@ -134,11 +134,14 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 static void zigbee_coord_task(void *pvParameters)
 {
     /* Configure as Zigbee Coordinator */
-    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZC_CONFIG();
+    esp_zb_cfg_t zb_nwk_cfg = {
+        .esp_zb_role = ESP_ZB_DEVICE_TYPE_ZC,
+        .install_code_policy = ESP_ZB_INSTALL_CODE_POLICY_ENABLE,
+    };
     esp_zb_init(&zb_nwk_cfg);
 
     /* Create minimal coordinator endpoint */
-    esp_zb_cluster_list_t *cluster_list = esp_zb_cluster_list_create();
+    esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
 
     /* Basic Cluster */
     esp_zb_basic_cluster_cfg_t basic_cfg = {
@@ -187,16 +190,10 @@ esp_err_t zigbee_coordinator_init(zigbee_coord_data_cb_t data_cb)
 
     esp_zb_platform_config_t platform_cfg = {
         .radio_config = {
-            .radio_mode = ZB_RADIO_MODE_UART_RCP,
-            .uart_config = {
-                .port = CONFIG_ZB_RCP_UART_PORT,
-                .rx_pin = CONFIG_ZB_RCP_UART_RX_PIN,
-                .tx_pin = CONFIG_ZB_RCP_UART_TX_PIN,
-                .baud_rate = CONFIG_ZB_RCP_UART_BAUDRATE,
-            },
+            .radio_mode = ESP_ZB_RADIO_MODE_UART_RCP,
         },
         .host_config = {
-            .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,
+            .host_connection_mode = ESP_ZB_HOST_CONNECTION_MODE_NONE,
         },
     };
     ESP_ERROR_CHECK(esp_zb_platform_config(&platform_cfg));

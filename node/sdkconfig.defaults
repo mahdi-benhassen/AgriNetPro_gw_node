@@ -9,9 +9,6 @@ CONFIG_ZB_ENABLED=y
 CONFIG_ZB_ZED=y
 CONFIG_ZB_RADIO_NATIVE=y
 
-# Enable v1.x compatibility layer for esp-zigbee-lib v2.0.0
-CONFIG_ZB_SDK_1xx=y
-
 # Partition table (OTA-ready)
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
