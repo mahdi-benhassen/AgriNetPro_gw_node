@@ -228,6 +228,8 @@ esp_err_t zigbee_node_report_battery(uint32_t voltage_mv)
     }
     ESP_LOGI(TAG, "Reported Battery: %lu mV (ZCL: %u, SoC: %u%%)",
              voltage_mv, battery_voltage, battery_pct / 2);
+
+    /* TODO: Add Power Configuration Cluster attributes and reporting */
     return ESP_OK;
 }
 

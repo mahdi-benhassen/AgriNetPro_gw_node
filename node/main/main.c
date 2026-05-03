@@ -11,17 +11,11 @@
 
 static const char *TAG = "NODE_MAIN";
 
-/* Sleep for 15 seconds for demo (use 900 for 15 min in production) */
-#define SLEEP_DURATION_SEC  15
+#define NODE_DEMO_SLEEP_SEC  15
 
-/* Event group for coordinating sleep after Zigbee transmission */
 static EventGroupHandle_t s_app_event_group = NULL;
 #define APP_SLEEP_READY_BIT BIT0
 
-/**
- * @brief Callback from the Zigbee stack signaling that reports are sent
- *        and the MCU may enter deep sleep.
- */
 static void on_sleep_ready(void)
 {
     if (s_app_event_group) {
@@ -35,7 +29,6 @@ void app_main(void)
     ESP_LOGI(TAG, " AgriNetPro IoT Node - Wake Up");
     ESP_LOGI(TAG, "========================================");
 
-    /* ---- NVS Init (required by Zigbee stack) ---- */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -43,7 +36,6 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    /* Initialize zb_storage partition for Zigbee stack v2.x */
     ret = nvs_flash_init_partition("zb_storage");
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase_partition("zb_storage"));
@@ -71,7 +63,6 @@ void app_main(void)
     /* ---- 3. Initialize Zigbee & Join Network ---- */
     ESP_ERROR_CHECK(zigbee_node_init(on_sleep_ready));
 
-    /* Wait for the node to join the Zigbee network (blocking) */
     ESP_LOGI(TAG, "Waiting to join Zigbee network...");
     for (int i = 0; i < ZIGBEE_NODE_JOIN_TIMEOUT_SEC; i++) {
         if (zigbee_node_is_connected()) {
@@ -91,10 +82,8 @@ void app_main(void)
     zigbee_node_report_humidity(humidity);
     zigbee_node_report_battery(batt_mv);
 
-    /* Signal the stack to finish up and notify us */
     zigbee_node_signal_tx_done();
 
-    /* Wait for the stack to actually send the frames */
     ESP_LOGI(TAG, "Waiting for Zigbee transmission to complete...");
     xEventGroupWaitBits(s_app_event_group, APP_SLEEP_READY_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(5000));
     ESP_LOGI(TAG, "Zigbee transmission complete.");
@@ -103,8 +92,14 @@ sleep:
     /* ---- 5. Shutdown Peripherals ---- */
     hal_sensor_deinit();
 
-    /* ---- 6. Enter Deep Sleep ---- */
-    power_manager_configure_sleep(SLEEP_DURATION_SEC);
-    ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", SLEEP_DURATION_SEC);
+    /* ---- 6. Calculate dynamic sleep interval based on battery ---- */
+    uint32_t sleep_duration = power_manager_get_sleep_duration(batt_mv);
+    if (sleep_duration > NODE_DEMO_SLEEP_SEC) {
+        sleep_duration = NODE_DEMO_SLEEP_SEC;
+    }
+
+    /* ---- 7. Enter Deep Sleep ---- */
+    ESP_ERROR_CHECK(power_manager_configure_sleep(sleep_duration, true));
+    ESP_LOGI(TAG, "Entering deep sleep for %lu seconds...", sleep_duration);
     power_manager_enter_deep_sleep();
 }
