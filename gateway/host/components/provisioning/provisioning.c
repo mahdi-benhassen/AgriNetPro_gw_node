@@ -76,9 +76,10 @@ esp_err_t provisioning_start(void)
 
     ESP_LOGI(TAG, "No credentials found, starting BLE provisioning");
 
-    wifi_prov_mgr_config_t config = WIFI_PROV_MGR_CONFIG_INIT();
-    config.scheme = wifi_prov_scheme_ble;
-    config.scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM;
+    wifi_prov_mgr_config_t config = {
+        .scheme = wifi_prov_scheme_ble,
+        .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
+    };
 
     esp_err_t ret = wifi_prov_mgr_init(&config);
     if (ret != ESP_OK) {
@@ -98,6 +99,8 @@ esp_err_t provisioning_start(void)
         if (ret != ESP_OK) {
             return ret;
         }
+
+        esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, prov_event_handler, NULL);
 
         ret = wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_1, NULL, PROV_SERVICE_NAME, NULL);
         if (ret != ESP_OK) {
