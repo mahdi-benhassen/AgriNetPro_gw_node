@@ -14,7 +14,11 @@ static const char *TAG = "ZB_NODE";
 static EventGroupHandle_t s_zb_event_group = NULL;
 static zigbee_node_sleep_ready_cb_t s_sleep_cb = NULL;
 static bool s_connected = false;
-static uint8_t s_reports_pending = 0;
+
+static void retry_steering_cb(uint8_t mode)
+{
+    esp_zb_bdb_start_top_level_commissioning((esp_zb_bdb_mode_t)mode);
+}
 
 /* ---- Zigbee Signal Handler (called by the stack) ---- */
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
@@ -36,8 +40,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
             esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_STEERING);
         } else {
             ESP_LOGW(TAG, "Init failed (0x%x), retrying...", err_status);
-            esp_zb_scheduler_alarm(
-                (esp_zb_callback_t)esp_zb_bdb_start_top_level_commissioning,
+            esp_zb_scheduler_alarm((esp_zb_callback_t)retry_steering_cb,
                 ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         break;
@@ -54,8 +57,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
             }
         } else {
             ESP_LOGW(TAG, "Steering failed (0x%x), retrying...", err_status);
-            esp_zb_scheduler_alarm(
-                (esp_zb_callback_t)esp_zb_bdb_start_top_level_commissioning,
+            esp_zb_scheduler_alarm((esp_zb_callback_t)retry_steering_cb,
                 ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         break;

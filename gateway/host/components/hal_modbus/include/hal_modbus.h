@@ -1,6 +1,8 @@
 #pragma once
 
 #include "esp_err.h"
+#include "driver/gpio.h"
+#include "driver/uart.h"
 #include <stdint.h>
 
 #ifdef __cplusplus
