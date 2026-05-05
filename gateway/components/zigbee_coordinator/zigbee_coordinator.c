@@ -10,6 +10,20 @@ static const char *TAG = "ZB_COORD";
 static zigbee_coord_data_cb_t s_data_cb = NULL;
 
 /* ---- ZCL Action Handler ---- */
+#ifndef ESP_ZB_ZC_CONFIG
+#define ESP_ZB_ZC_CONFIG() {                                \
+    .esp_zb_role = ESP_ZB_DEVICE_TYPE_COORDINATOR,          \
+    .install_code_policy = false,                           \
+    .nwk_cfg.zczr_cfg = {                                   \
+        .max_children = 10,                                 \
+    },                                                      \
+}
+#endif
+
+#ifndef esp_zb_cluster_list_create
+#define esp_zb_cluster_list_create esp_zb_zcl_cluster_list_create
+#endif
+
 static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
                                    const void *message)
 {
@@ -188,11 +202,18 @@ esp_err_t zigbee_coordinator_init(zigbee_coord_data_cb_t data_cb)
     esp_zb_platform_config_t platform_cfg = {
         .radio_config = {
             .radio_mode = ZB_RADIO_MODE_UART_RCP,
-            .uart_config = {
+            .radio_uart_config = {
                 .port = CONFIG_ZB_RCP_UART_PORT,
                 .rx_pin = CONFIG_ZB_RCP_UART_RX_PIN,
                 .tx_pin = CONFIG_ZB_RCP_UART_TX_PIN,
-                .baud_rate = CONFIG_ZB_RCP_UART_BAUDRATE,
+                .uart_config = {
+                    .baud_rate = CONFIG_ZB_RCP_UART_BAUDRATE,
+                    .data_bits = UART_DATA_8_BITS,
+                    .parity = UART_PARITY_DISABLE,
+                    .stop_bits = UART_STOP_BITS_1,
+                    .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                    .source_clk = UART_SCLK_DEFAULT,
+                },
             },
         },
         .host_config = {

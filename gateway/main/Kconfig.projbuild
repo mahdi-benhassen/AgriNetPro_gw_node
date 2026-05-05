@@ -1,0 +1,28 @@
+menu "Gateway Configuration"
+
+    config ZB_RCP_UART_PORT
+        int "UART port for RCP"
+        range 0 2
+        default 1
+        help
+            UART port used to communicate with the RCP (ESP32-H2).
+
+    config ZB_RCP_UART_TX_PIN
+        int "UART TX pin for RCP"
+        default 17
+        help
+            GPIO number for UART TX pin.
+
+    config ZB_RCP_UART_RX_PIN
+        int "UART RX pin for RCP"
+        default 18
+        help
+            GPIO number for UART RX pin.
+
+    config ZB_RCP_UART_BAUDRATE
+        int "UART baudrate for RCP"
+        default 115200
+        help
+            UART baudrate used for RCP communication.
+
+endmenu
