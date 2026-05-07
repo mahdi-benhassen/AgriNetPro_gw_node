@@ -37,10 +37,19 @@ jobs:
           cd esp-thread-br/examples/basic_thread_border_router
           idf.py set-target esp32s3
           idf.py build
-          
-          # Create artifact folder and copy the compiled binary
+                  
+          # Create artifact folder
           mkdir -p ${GITHUB_WORKSPACE}/build_artifacts/gw
-          cp build/merged-binary.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin || cp build/basic_thread_border_router.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin
+                  
+          # Copy the correct main binary and rename it
+          cp build/esp_ot_br.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin
+                  
+          # Copy the rest of the required flashing files
+          cp build/bootloader/bootloader.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
+          cp build/partition_table/partition-table.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
+          cp build/ota_data_initial.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
+          cp build/web_storage.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
+          cp build/rcp_fw.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
 
       - name: Build Node (ESP32-H2)
         run: |
