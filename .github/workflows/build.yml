@@ -11,35 +11,41 @@ jobs:
     # Using the official Espressif Docker image (v5.2 is stable for Thread)
     container: espressif/idf:release-v5.2
 
-    steps:
+steps:
       - name: Checkout Your Repo
         uses: actions/checkout@v4
 
       - name: Install ESP-Thread-BR Component
         run: |
           . /opt/esp/idf/export.sh
-          # Clone the Thread Border Router repository
           git clone --recursive https://github.com/espressif/esp-thread-br.git
           
+      # --- ADD THIS NEW STEP HERE ---
+      - name: Build RCP (ESP32-H2)
+        run: |
+          . /opt/esp/idf/export.sh
+          cd $IDF_PATH/examples/openthread/ot_rcp
+          idf.py set-target esp32h2
+          idf.py build
+      # ------------------------------
+
       - name: Build Gateway (ESP32-S3)
         run: |
           . /opt/esp/idf/export.sh
           cd esp-thread-br/examples/basic_thread_border_router
           idf.py set-target esp32s3
           idf.py build
-          # Move binary to a common folder for upload
           mkdir -p ../../../build_artifacts/gw
           cp build/merged-binary.bin ../../../build_artifacts/gw/gateway.bin || cp build/basic_thread_border_router.bin ../../../build_artifacts/gw/gateway.bin
 
       - name: Build Node (ESP32-H2)
         run: |
           . /opt/esp/idf/export.sh
-          # We use the standard OpenThread CLI example for the Node
           cd $IDF_PATH/examples/openthread/ot_cli
           idf.py set-target esp32h2
           idf.py build
-          mkdir -p /__w/my-thread-project/my-thread-project/build_artifacts/node
-          cp build/ot_cli.bin /__w/my-thread-project/my-thread-project/build_artifacts/node/node.bin
+          mkdir -p /__w/AgriNetPro_gw_node/AgriNetPro_gw_node/build_artifacts/node
+          cp build/ot_cli.bin /__w/AgriNetPro_gw_node/AgriNetPro_gw_node/build_artifacts/node/node.bin
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
