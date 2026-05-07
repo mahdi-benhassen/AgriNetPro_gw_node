@@ -1,33 +1,35 @@
-name: Build Thread Project
+name: Build ESP Thread Gateway and Node
 
+# Trigger the workflow on pushes to main or your specific branch, and allow manual runs
 on:
   push:
     branches: [ esp-thread-br ]
-  workflow_dispatch: # Allows you to run the build manually
+  workflow_dispatch: 
 
 jobs:
-  build-gw-and-node:
+  build-thread-binaries:
+    name: Build Firmware Binaries
     runs-on: ubuntu-latest
-    # Using the official Espressif Docker image (v5.2 is stable for Thread)
+    # We use the official ESP-IDF v5.2 Docker image which has all tools pre-installed
     container: espressif/idf:release-v5.2
 
-steps:
-      - name: Checkout Your Repo
+    steps:
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install ESP-Thread-BR Component
+      - name: Clone esp-thread-br repository
         run: |
           . /opt/esp/idf/export.sh
+          # Clone the Thread Border Router repository with all submodules
           git clone --recursive https://github.com/espressif/esp-thread-br.git
           
-      # --- ADD THIS NEW STEP HERE ---
       - name: Build RCP (ESP32-H2)
+        # The S3 Gateway requires this H2 firmware to exist so it can embed it for OTA updates
         run: |
           . /opt/esp/idf/export.sh
           cd $IDF_PATH/examples/openthread/ot_rcp
           idf.py set-target esp32h2
           idf.py build
-      # ------------------------------
 
       - name: Build Gateway (ESP32-S3)
         run: |
@@ -35,20 +37,26 @@ steps:
           cd esp-thread-br/examples/basic_thread_border_router
           idf.py set-target esp32s3
           idf.py build
-          mkdir -p ../../../build_artifacts/gw
-          cp build/merged-binary.bin ../../../build_artifacts/gw/gateway.bin || cp build/basic_thread_border_router.bin ../../../build_artifacts/gw/gateway.bin
+          
+          # Create artifact folder and copy the compiled binary
+          mkdir -p ${GITHUB_WORKSPACE}/build_artifacts/gw
+          cp build/merged-binary.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin || cp build/basic_thread_border_router.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin
 
       - name: Build Node (ESP32-H2)
         run: |
           . /opt/esp/idf/export.sh
+          # Navigate to the built-in OpenThread CLI example inside ESP-IDF
           cd $IDF_PATH/examples/openthread/ot_cli
           idf.py set-target esp32h2
           idf.py build
-          mkdir -p /__w/AgriNetPro_gw_node/AgriNetPro_gw_node/build_artifacts/node
-          cp build/ot_cli.bin /__w/AgriNetPro_gw_node/AgriNetPro_gw_node/build_artifacts/node/node.bin
+          
+          # Create artifact folder and copy the compiled binary
+          mkdir -p ${GITHUB_WORKSPACE}/build_artifacts/node
+          cp build/ot_cli.bin ${GITHUB_WORKSPACE}/build_artifacts/node/node.bin
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
           name: thread-firmware-binaries
           path: build_artifacts/
+          retention-days: 7
