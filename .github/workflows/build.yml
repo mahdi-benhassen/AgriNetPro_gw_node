@@ -34,6 +34,11 @@ jobs:
       - name: Build Gateway (ESP32-S3)
         run: |
           . /opt/esp/idf/export.sh
+          
+          # --- INJECT CUSTOM GATEWAY CODE ---
+          # This copies your custom main.c into the border router example, overwriting the default
+          cp -r ${GITHUB_WORKSPACE}/gateway_src/* esp-thread-br/examples/basic_thread_border_router/main/
+          
           cd esp-thread-br/examples/basic_thread_border_router
           idf.py set-target esp32s3
           idf.py build
@@ -54,6 +59,11 @@ jobs:
       - name: Build Node (ESP32-H2)
         run: |
           . /opt/esp/idf/export.sh
+          
+          # --- INJECT CUSTOM NODE CODE ---
+          # This copies your custom esp_ot_cli.c into the IDF example, overwriting the default
+          cp -r ${GITHUB_WORKSPACE}/node_src/* $IDF_PATH/examples/openthread/ot_cli/main/
+          
           # Navigate to the built-in OpenThread CLI example inside ESP-IDF
           cd $IDF_PATH/examples/openthread/ot_cli
           idf.py set-target esp32h2
