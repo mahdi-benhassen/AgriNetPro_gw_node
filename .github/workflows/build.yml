@@ -59,9 +59,15 @@ jobs:
           idf.py set-target esp32h2
           idf.py build
           
-          # Create artifact folder and copy the compiled binary
+          # Create artifact folder
           mkdir -p ${GITHUB_WORKSPACE}/build_artifacts/node
-          cp build/ot_cli.bin ${GITHUB_WORKSPACE}/build_artifacts/node/node.bin
+          
+          # Copy the correct main binary and rename it
+          cp build/esp_ot_cli.bin ${GITHUB_WORKSPACE}/build_artifacts/node/node.bin
+          
+          # Copy the rest of the required flashing files
+          cp build/bootloader/bootloader.bin ${GITHUB_WORKSPACE}/build_artifacts/node/
+          cp build/partition_table/partition-table.bin ${GITHUB_WORKSPACE}/build_artifacts/node/
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
