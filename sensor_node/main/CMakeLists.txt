@@ -1,0 +1,17 @@
+idf_component_register(
+    SRCS
+        "app_node_main.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_openthread
+        openthread
+        app_sensor
+        app_coap_client
+        app_sleep
+        driver
+        esp_timer
+)

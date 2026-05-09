@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "app_coap_client.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        coap
+        esp_openthread
+        openthread
+        freertos
+        esp_log
+        esp_timer
+        app_sensor
+)

@@ -1,0 +1,43 @@
+menu "ESP Thread Border Router — Application Layer"
+
+    config APP_NETWORK_ID
+        string "Thread network logical name"
+        default "HomeNet01"
+        help
+            Used as a path component in MQTT topics and REST API responses.
+            Must match the value configured on all sensor nodes.
+
+    config MQTT_BROKER_URI
+        string "MQTT broker URI"
+        default "mqtt://192.168.1.10:1883"
+        help
+            Full MQTT broker URI.  Examples:
+              mqtt://192.168.1.10:1883       (plain TCP)
+              mqtts://mqtt.example.com:8883  (TLS)
+              mqtt://user:pass@192.168.1.10  (auth)
+
+    config MQTT_USERNAME
+        string "MQTT username (leave blank if not needed)"
+        default ""
+
+    config MQTT_PASSWORD
+        string "MQTT password (leave blank if not needed)"
+        default ""
+
+    config REST_API_PORT
+        int "REST API HTTP port"
+        default 8080
+        range 1 65535
+        help
+            Port on which the border router serves its REST API.
+            Access via http://<br-ip>:<port>/api/v1/nodes
+
+    config DEVICE_ONLINE_TTL_S
+        int "Node online timeout (seconds)"
+        default 120
+        range 30 3600
+        help
+            A node is marked offline if no telemetry is received within this
+            duration.  Set to at least 2× the sensor reporting interval.
+
+endmenu

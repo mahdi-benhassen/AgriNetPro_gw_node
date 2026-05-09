@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# sdkconfig.defaults — Border Router Application Layer (ESP32-S3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+CONFIG_IDF_TARGET="esp32s3"
+
+# ── Application ──────────────────────────────────────────────────────────────
+CONFIG_APP_NETWORK_ID="HomeNet01"
+CONFIG_MQTT_BROKER_URI="mqtt://192.168.1.10:1883"
+CONFIG_MQTT_USERNAME=""
+CONFIG_MQTT_PASSWORD=""
+CONFIG_REST_API_PORT=8080
+CONFIG_DEVICE_ONLINE_TTL_S=120
+
+# ── Wi-Fi (change to your network) ────────────────────────────────────────────
+CONFIG_EXAMPLE_WIFI_SSID="YourSSID"
+CONFIG_EXAMPLE_WIFI_PASSWORD="YourPassword"
+
+# ── OpenThread Border Router ──────────────────────────────────────────────────
+CONFIG_OPENTHREAD_ENABLED=y
+CONFIG_OPENTHREAD_BORDER_ROUTER=y
+CONFIG_OPENTHREAD_LOG_LEVEL_NOTE=y
+
+# Thread network parameters (must match sensor nodes)
+CONFIG_OPENTHREAD_NETWORK_NAME="OpenThread-ESP"
+CONFIG_OPENTHREAD_MESH_LOCAL_PREFIX="fd00:db8:a0:0::/64"
+CONFIG_OPENTHREAD_NETWORK_CHANNEL=15
+CONFIG_OPENTHREAD_NETWORK_PANID=0x1234
+CONFIG_OPENTHREAD_NETWORK_MASTERKEY="00112233445566778899aabbccddeeff"
+
+# NAT64 — lets Thread nodes reach IPv4 MQTT brokers
+CONFIG_OPENTHREAD_NAT64=y
+
+# SRP server — lets nodes register service names via DNS-SD
+CONFIG_OPENTHREAD_SRP_SERVER_ENABLE=y
+
+# LWIP IPv6 addresses (IDF ≥ v5.3.1)
+CONFIG_LWIP_IPV6_NUM_ADDRESSES=12
+
+# ── MQTT ─────────────────────────────────────────────────────────────────────
+CONFIG_MQTT_TRANSPORT_TCP=y
+
+# ── HTTP server ───────────────────────────────────────────────────────────────
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_HTTPD_WS_SUPPORT=y          # For future WebSocket telemetry streaming
+
+# ── FreeRTOS ──────────────────────────────────────────────────────────────────
+CONFIG_FREERTOS_HZ=1000
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# ── Partition table ───────────────────────────────────────────────────────────
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"

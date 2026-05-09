@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# sdkconfig.defaults — Sensor Node (ESP32-H2)
+# Apply with:  idf.py -D SDKCONFIG_DEFAULTS=sdkconfig.defaults build
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Target chip
+CONFIG_IDF_TARGET="esp32h2"
+
+# ── Application ──────────────────────────────────────────────────────────────
+CONFIG_APP_NODE_LABEL="SensorNode-01"
+CONFIG_APP_SENSOR_TYPE_DHT22=y
+CONFIG_APP_SENSOR_DHT22_GPIO=8
+CONFIG_APP_SLEEP_MODE_LIGHT=y
+CONFIG_APP_SENSOR_REPORT_INTERVAL_S=30
+CONFIG_APP_BATTERY_SENSE_ENABLE=n
+CONFIG_APP_LED_GPIO=2
+CONFIG_APP_NETWORK_ID="HomeNet01"
+
+# ── OpenThread ────────────────────────────────────────────────────────────────
+CONFIG_OPENTHREAD_ENABLED=y
+CONFIG_OPENTHREAD_LOG_LEVEL_NOTE=y
+
+# Thread dataset (change to match your network)
+CONFIG_OPENTHREAD_NETWORK_NAME="OpenThread-ESP"
+CONFIG_OPENTHREAD_MESH_LOCAL_PREFIX="fd00:db8:a0:0::/64"
+CONFIG_OPENTHREAD_NETWORK_CHANNEL=15
+CONFIG_OPENTHREAD_NETWORK_PANID=0x1234
+CONFIG_OPENTHREAD_NETWORK_MASTERKEY="00112233445566778899aabbccddeeff"
+
+# Sleepy End Device tuning
+CONFIG_OPENTHREAD_SED_ENABLE=y
+CONFIG_OPENTHREAD_SED_POLL_PERIOD=30000   # ms — must match SENSOR_REPORT_INTERVAL_S
+
+# ── CoAP ─────────────────────────────────────────────────────────────────────
+CONFIG_COAP_MBEDTLS_PSK=n        # No DTLS for now (add for production)
+CONFIG_COAP_LOG_DEFAULT_LEVEL=1
+
+# ── FreeRTOS ──────────────────────────────────────────────────────────────────
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_UNICORE=y        # ESP32-H2 is single-core
+
+# ── NVS ───────────────────────────────────────────────────────────────────────
+CONFIG_NVS_ENCRYPTION=n
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# ── Partition table ───────────────────────────────────────────────────────────
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"

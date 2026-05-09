@@ -1,0 +1,82 @@
+menu "ESP Thread Sensor Node"
+
+    config APP_NODE_LABEL
+        string "Node human-readable label"
+        default "SensorNode-01"
+        help
+            Label shown in the border router dashboard and MQTT topics.
+            Maximum 15 characters.
+
+    choice APP_SENSOR_TYPE
+        prompt "Sensor hardware"
+        default APP_SENSOR_TYPE_DHT22
+        help
+            Select the temperature/humidity sensor fitted to this node.
+
+        config APP_SENSOR_TYPE_DHT22
+            bool "DHT22 (AM2302) — 1-wire bit-bang"
+        config APP_SENSOR_TYPE_SHT31
+            bool "SHT31-D / SHT35 — I2C"
+    endchoice
+
+    config APP_SENSOR_DHT22_GPIO
+        int "DHT22 data GPIO number"
+        depends on APP_SENSOR_TYPE_DHT22
+        default 8
+        range 0 46
+        help
+            GPIO pin connected to the DHT22 data line.
+            A 10 kΩ pull-up to 3V3 is required.
+
+    config APP_SENSOR_SHT31_SDA
+        int "SHT31 I2C SDA GPIO"
+        depends on APP_SENSOR_TYPE_SHT31
+        default 6
+
+    config APP_SENSOR_SHT31_SCL
+        int "SHT31 I2C SCL GPIO"
+        depends on APP_SENSOR_TYPE_SHT31
+        default 7
+
+    choice APP_SLEEP_MODE
+        prompt "Power management / sleep mode"
+        default APP_SLEEP_MODE_LIGHT
+        help
+            Light: Thread stays attached; modem-sleep between reports.
+            Deep:  Thread dataset saved to NVS; ESP enters deep-sleep.
+                   Lowest power but ~3 s to rejoin on each wake.
+
+        config APP_SLEEP_MODE_LIGHT
+            bool "Light sleep (Thread always attached)"
+        config APP_SLEEP_MODE_DEEP
+            bool "Deep sleep (rejoin on each wake)"
+    endchoice
+
+    config APP_SENSOR_REPORT_INTERVAL_S
+        int "Sensor reporting interval (seconds)"
+        default 30
+        range 5 3600
+        help
+            How often the node reads the sensor and posts to the border router.
+
+    config APP_BATTERY_SENSE_ENABLE
+        bool "Enable battery voltage sensing via ADC"
+        default n
+        help
+            Enable if the node runs on a LiPo / battery pack and you want
+            battery level reported in telemetry.  Requires a resistor divider
+            from battery+ to an ADC-capable GPIO.
+
+    config APP_LED_GPIO
+        int "Status LED GPIO number"
+        default 2
+        range 0 46
+
+    config APP_NETWORK_ID
+        string "Thread network identifier (for MQTT topics)"
+        default "HomeNet01"
+        help
+            Logical name of this Thread network.  Must match the border router
+            configuration.  Used as path component in MQTT topics.
+
+endmenu

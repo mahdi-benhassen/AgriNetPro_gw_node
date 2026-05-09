@@ -1,0 +1,13 @@
+idf_component_register(
+    SRCS
+        "app_sleep.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        esp_sleep
+        esp_openthread
+        openthread
+        nvs_flash
+        freertos
+        esp_log
+)
