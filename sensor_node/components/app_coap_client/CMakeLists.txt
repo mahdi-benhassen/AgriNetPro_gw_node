@@ -4,8 +4,7 @@ idf_component_register(
     INCLUDE_DIRS
         "include"
     REQUIRES
-        coap
-        esp_openthread
+        espressif__coap
         openthread
         freertos
         log
