@@ -16,8 +16,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Clone esp-thread-br repository
         run: |
-          # Clone the Thread Border Router repository with all submodules
-          git clone --recursive https://github.com/espressif/esp-thread-br.git
+          # Clone the Thread Border Router repository (v1.3 is compatible with IDF v5.5)
+          git clone -b v1.3 --recursive https://github.com/espressif/esp-thread-br.git
           
       - name: Build RCP (ESP32-H2)
         run: |
