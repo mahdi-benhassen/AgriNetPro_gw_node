@@ -1,3 +1,5 @@
 dependencies:
   espressif/coap: "^4.3.0"
+  espressif/mdns: "*"
+  espressif/cjson: "^1.0.0"
   idf: ">=5.2"
