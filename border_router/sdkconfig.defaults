@@ -53,3 +53,7 @@ CONFIG_VFS_SUPPORT_SELECT=y
 
 # ── OpenThread radio: UART to ESP32-H2 RCP ───────────────────────────────
 CONFIG_OPENTHREAD_RADIO_SPINEL_UART=y
+
+# ── Required by OpenThread Border Router (LWIP & mDNS features) ──────────
+CONFIG_LWIP_NETIF_STATUS_CALLBACK=y
+CONFIG_MDNS_MULTIPLE_INSTANCE=y

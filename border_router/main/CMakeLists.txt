@@ -20,4 +20,5 @@ idf_component_register(
         cjson
         vfs
         esp_driver_uart
+        mdns
 )
