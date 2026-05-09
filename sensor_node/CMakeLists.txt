@@ -9,6 +9,7 @@ set(EXTRA_COMPONENT_DIRS
     "$ENV{ESP_THREAD_BR_PATH}/components"   # esp-thread-br SDK components
     "${CMAKE_CURRENT_SOURCE_DIR}/components"
     "${CMAKE_CURRENT_SOURCE_DIR}/../common"
+    "$ENV{IDF_PATH}/examples/common_components/protocol_examples_common"
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
