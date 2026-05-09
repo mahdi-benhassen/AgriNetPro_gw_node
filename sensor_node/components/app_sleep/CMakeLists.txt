@@ -4,8 +4,6 @@ idf_component_register(
     INCLUDE_DIRS
         "include"
     REQUIRES
-        esp_sleep
-        esp_openthread
         openthread
         nvs_flash
         freertos
