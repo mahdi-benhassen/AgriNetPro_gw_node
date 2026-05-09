@@ -63,7 +63,7 @@ typedef enum {
 
 /* ─── Packed sensor payload (sent over CoAP, also embedded in MQTT JSON) ──── */
 /**
- * @brief Binary sensor payload — 24 bytes, little-endian.
+ * @brief Binary sensor payload — 28 bytes, little-endian.
  *
  * Packed with __attribute__((packed)) so the layout is identical on
  * both ESP32-H2 (ARM Cortex-M) and ESP32-S3 (Xtensa LX7).
@@ -87,8 +87,8 @@ typedef struct __attribute__((packed)) {
     uint8_t     _pad[2];        /**< Reserved, set to 0                        */
 } app_sensor_payload_t;
 
-/* Compile-time size check: must be 24 bytes */
-_Static_assert(sizeof(app_sensor_payload_t) == 24,
+/* Compile-time size check: must be 28 bytes */
+_Static_assert(sizeof(app_sensor_payload_t) == 28,
                "app_sensor_payload_t size mismatch — check padding!");
 
 /* ─── Node registration payload (first-contact CoAP POST) ─────────────────── */
