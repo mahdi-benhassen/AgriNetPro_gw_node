@@ -37,7 +37,7 @@ jobs:
           
           # --- INJECT CUSTOM GATEWAY CODE ---
           # This copies your custom main.c into the border router example, overwriting the default
-          cp -r ${GITHUB_WORKSPACE}/gateway_src/* esp-thread-br/examples/basic_thread_border_router/main/
+          cp -r ${GITHUB_WORKSPACE}/border_router/* esp-thread-br/examples/basic_thread_border_router/
           
           cd esp-thread-br/examples/basic_thread_border_router
           idf.py set-target esp32s3
@@ -62,7 +62,7 @@ jobs:
           
           # --- INJECT CUSTOM NODE CODE ---
           # This copies your custom esp_ot_cli.c into the IDF example, overwriting the default
-          cp -r ${GITHUB_WORKSPACE}/node_src/* $IDF_PATH/examples/openthread/ot_cli/main/
+          cp -r ${GITHUB_WORKSPACE}/sensor_node/* $IDF_PATH/examples/openthread/ot_cli/
           
           # Navigate to the built-in OpenThread CLI example inside ESP-IDF
           cd $IDF_PATH/examples/openthread/ot_cli
