@@ -10,3 +10,6 @@ list(APPEND EXTRA_COMPONENT_DIRS "$ENV{IDF_PATH}/examples/common_components/prot
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 project(border_router_app)
+
+# Ensure the common header directory is on the include path for all components
+idf_build_set_property(COMPILE_OPTIONS "-I${CMAKE_CURRENT_SOURCE_DIR}/../common" APPEND)

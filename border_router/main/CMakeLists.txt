@@ -3,7 +3,7 @@ idf_component_register(
         "app_br_main.c"
     INCLUDE_DIRS
         "."
-        "../common"
+        "../../common"
     REQUIRES
         nvs_flash
         esp_event
