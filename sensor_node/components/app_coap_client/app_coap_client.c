@@ -15,12 +15,15 @@
 #include "esp_log.h"
 #include "esp_openthread.h"
 #include "esp_openthread_types.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "coap3/coap.h"
 #include <openthread/thread.h>
 #include <openthread/ip6.h>
+#include <openthread/link.h>
+#include <openthread/platform/radio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -59,10 +62,10 @@ typedef struct {
     size_t          response_len;
 } coap_response_ctx_t;
 
-static void coap_response_handler(coap_session_t *session,
-                                   const coap_pdu_t *sent,
-                                   const coap_pdu_t *received,
-                                   const coap_mid_t  mid)
+static coap_response_t coap_response_handler(coap_session_t *session,
+                                              const coap_pdu_t *sent,
+                                              const coap_pdu_t *received,
+                                              const coap_mid_t  mid)
 {
     coap_response_ctx_t *ctx = (coap_response_ctx_t *)
         coap_session_get_app_data(session);
@@ -80,6 +83,7 @@ static void coap_response_handler(coap_session_t *session,
         }
         ctx->done = true;
     }
+    return COAP_RESPONSE_OK;
 }
 
 static esp_err_t coap_send_request(coap_request_t method,
@@ -189,12 +193,11 @@ esp_err_t app_coap_client_register(const char *label)
     if (!s_ctx || !s_mutex) return ESP_ERR_INVALID_STATE;
 
     /* Build the node EUI-64 from Thread stack */
-    otInstance   *ot = esp_openthread_get_instance();
-    otExtAddress  ext;
-    otLinkGetExtendedAddress(ot, &ext);
+    otInstance         *ot  = esp_openthread_get_instance();
+    const otExtAddress *ext = otLinkGetExtendedAddress(ot);
     uint64_t eui64 = 0;
     for (int i = 0; i < 8; i++) {
-        eui64 = (eui64 << 8) | ext.m8[i];
+        eui64 = (eui64 << 8) | ext->m8[i];
     }
 
     app_node_reg_payload_t reg = {
@@ -226,11 +229,10 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading)
 {
     if (!s_ctx || !s_mutex) return ESP_ERR_INVALID_STATE;
 
-    otInstance  *ot = esp_openthread_get_instance();
-    otExtAddress ext;
-    otLinkGetExtendedAddress(ot, &ext);
+    otInstance         *ot  = esp_openthread_get_instance();
+    const otExtAddress *ext = otLinkGetExtendedAddress(ot);
     uint64_t eui64 = 0;
-    for (int i = 0; i < 8; i++) eui64 = (eui64 << 8) | ext.m8[i];
+    for (int i = 0; i < 8; i++) eui64 = (eui64 << 8) | ext->m8[i];
 
     app_sensor_payload_t payload = {
         .version       = APP_PROTO_VERSION,
@@ -241,7 +243,7 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading)
         .temperature_c = TEMP_FLOAT_TO_RAW(reading->temperature_c),
         .humidity_pct  = HUM_FLOAT_TO_RAW(reading->humidity_pct),
         .battery_mv    = app_sensor_battery_mv(),
-        .rssi_dbm      = (int16_t)otLinkGetRssi(ot),
+        .rssi_dbm      = (int16_t)otPlatRadioGetRssi(ot),
         .seq_num       = s_seq_num++,
     };
 
