@@ -1,0 +1,7 @@
+dependencies:
+  # Required for MQTT bridge and REST API JSON processing
+  espressif/cjson: "^1.0.0"
+  # Required for the CoAP server
+  espressif/coap: "^4.3.0"
+  # Ensure the IDF version is compatible
+  idf: ">=5.2"
