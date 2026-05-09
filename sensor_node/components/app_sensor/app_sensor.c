@@ -13,6 +13,7 @@
 #include "app_sensor.h"
 #include "app_config.h"
 #include "esp_log.h"
+#include "esp_check.h"
 #include "esp_adc/adc_oneshot.h"
 #include "driver/gpio.h"
 #include "driver/i2c.h"
