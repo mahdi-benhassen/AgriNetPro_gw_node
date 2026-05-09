@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Bring in ESP-IDF and the esp-thread-br SDK
-# Set IDF_PATH before calling this, e.g.:
-#   export IDF_PATH=~/esp/esp-idf
-#   export ESP_THREAD_BR_PATH=~/esp/esp-thread-br
+# Sensor Node — pure Thread end-device (ESP32-H2).
+# Only the built-in IDF openthread component is needed; do NOT include the
+# esp-thread-br Border Router SDK here, as it pulls in esp_ot_br_server and
+# its SPIFFS web partition which do not belong on a leaf node.
 
 set(EXTRA_COMPONENT_DIRS
-    "$ENV{ESP_THREAD_BR_PATH}/components"   # esp-thread-br SDK components
     "${CMAKE_CURRENT_SOURCE_DIR}/components"
     "${CMAKE_CURRENT_SOURCE_DIR}/../common"
     "$ENV{IDF_PATH}/examples/common_components/protocol_examples_common"

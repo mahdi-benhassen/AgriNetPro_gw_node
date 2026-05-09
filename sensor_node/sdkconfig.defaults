@@ -6,6 +6,9 @@
 # Target chip
 CONFIG_IDF_TARGET="esp32h2"
 
+# ── Flash size (ESP32-H2 sensor node has 4 MB) ────────────────────────────────
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
 # ── Application ──────────────────────────────────────────────────────────────
 CONFIG_APP_NODE_LABEL="SensorNode-01"
 CONFIG_APP_SENSOR_TYPE_DHT22=y
