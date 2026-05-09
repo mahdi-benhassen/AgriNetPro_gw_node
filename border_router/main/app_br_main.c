@@ -42,7 +42,7 @@
 /* ESP Thread Border Router SDK */
 #include "esp_openthread.h"
 #include "esp_openthread_border_router.h"
-#include "esp_openthread_defaults.h"
+#include "esp_ot_config.h"
 #include "esp_openthread_lock.h"
 #include "esp_openthread_netif_glue.h"
 #include "esp_openthread_types.h"
