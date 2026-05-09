@@ -26,6 +26,10 @@
 #include <string.h>
 #include <time.h>
 
+#ifndef MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#endif
+
 static const char *TAG = TAG_MQTT;
 
 static esp_mqtt_client_handle_t s_client = NULL;
@@ -149,6 +153,13 @@ static void handle_downlink(const char *topic, const char *payload)
     cJSON_Delete(root);
 }
 
+/* ─── Callback for publishing all device statuses on MQTT connect ─────── */
+static void publish_all_status_cb(const app_device_entry_t *dev, void *ud)
+{
+    (void)ud;
+    publish_status(dev->eui64, dev->online);
+}
+
 /* ─── MQTT event handler ─────────────────────────────────────────────────── */
 static void mqtt_event_handler(void *arg,
                                 esp_event_base_t base,
@@ -178,10 +189,7 @@ static void mqtt_event_handler(void *arg,
         }
 
         /* Publish online status for all registered devices */
-        app_device_registry_foreach(
-            [](const app_device_entry_t *dev, void *ud) {
-                publish_status(dev->eui64, dev->online);
-            }, NULL);
+        app_device_registry_foreach(publish_all_status_cb, NULL);
         break;
 
     case MQTT_EVENT_DISCONNECTED:

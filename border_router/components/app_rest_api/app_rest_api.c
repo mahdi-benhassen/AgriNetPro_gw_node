@@ -22,6 +22,12 @@
 #include <string.h>
 #include <stdio.h>
 
+/* Helper stringification for version */
+#define STR(x)  STR2(x)
+#define STR2(x) #x
+#define APP_FW_MAJOR_STR STR(APP_FW_MAJOR)
+#define APP_FW_MINOR_STR STR(APP_FW_MINOR)
+
 static const char *TAG = TAG_REST;
 
 /* ─── JSON builders ──────────────────────────────────────────────────────── */
@@ -192,11 +198,7 @@ static esp_err_t handler_get_status(httpd_req_t *req)
     return ESP_OK;
 }
 
-/* Helper stringification for version */
-#define STR(x)  STR2(x)
-#define STR2(x) #x
-#define APP_FW_MAJOR_STR STR(APP_FW_MAJOR)
-#define APP_FW_MINOR_STR STR(APP_FW_MINOR)
+
 
 /* ─── Public API ─────────────────────────────────────────────────────────── */
 

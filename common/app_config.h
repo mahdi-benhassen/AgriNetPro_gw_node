@@ -4,9 +4,15 @@
  *
  * Override any of these in sdkconfig or via Kconfig if you want menu-driven
  * configuration.  The defaults work out-of-the-box on the ESP Thread BR board.
+ *
+ * Kconfig symbols (CONFIG_*) take priority when available; the #ifndef guards
+ * provide fallback defaults for header-only or sensor-node builds that may not
+ * define every CONFIG_ symbol.
  */
 
 #pragma once
+
+#include "sdkconfig.h"
 
 /* ─── Firmware version ────────────────────────────────────────────────────── */
 #define APP_FW_MAJOR    1
@@ -14,7 +20,9 @@
 #define APP_FW_PATCH    0
 
 /* ─── Network ID  (shared by all nodes and the BR) ────────────────────────── */
-#ifndef APP_NETWORK_ID
+#ifdef CONFIG_APP_NETWORK_ID
+#define APP_NETWORK_ID  CONFIG_APP_NETWORK_ID
+#else
 #define APP_NETWORK_ID  "HomeNet01"
 #endif
 
@@ -26,11 +34,24 @@
 #define BR_COAP_PORT    5683
 
 /* ─── MQTT broker ─────────────────────────────────────────────────────────── */
-#ifndef MQTT_BROKER_URI
+#ifdef CONFIG_MQTT_BROKER_URI
+#define MQTT_BROKER_URI CONFIG_MQTT_BROKER_URI
+#elif !defined(MQTT_BROKER_URI)
 #define MQTT_BROKER_URI "mqtt://192.168.1.10:1883"   /* Change to your broker  */
 #endif
+
+#ifdef CONFIG_MQTT_USERNAME
+#define MQTT_USERNAME   CONFIG_MQTT_USERNAME
+#elif !defined(MQTT_USERNAME)
 #define MQTT_USERNAME   ""
+#endif
+
+#ifdef CONFIG_MQTT_PASSWORD
+#define MQTT_PASSWORD   CONFIG_MQTT_PASSWORD
+#elif !defined(MQTT_PASSWORD)
 #define MQTT_PASSWORD   ""
+#endif
+
 #define MQTT_QOS        1
 #define MQTT_RETAIN     0
 #define MQTT_KEEPALIVE_S  60
@@ -64,8 +85,19 @@
 #define DEVICE_REGISTRY_MAX_NODES   32
 
 /* ─── HTTP REST API (border router) ──────────────────────────────────────────*/
+#ifdef CONFIG_REST_API_PORT
+#define REST_API_PORT               CONFIG_REST_API_PORT
+#elif !defined(REST_API_PORT)
 #define REST_API_PORT               8080
+#endif
 #define REST_API_MAX_CONNECTIONS    5
+
+/* ─── Device online TTL (border router) ──────────────────────────────────────*/
+#ifdef CONFIG_DEVICE_ONLINE_TTL_S
+#undef  DEVICE_ONLINE_TTL_S
+#define DEVICE_ONLINE_TTL_S         CONFIG_DEVICE_ONLINE_TTL_S
+#endif
+/* Fallback defined in app_device_registry.h if not set via Kconfig */
 
 /* ─── Logging tags ────────────────────────────────────────────────────────── */
 #define TAG_MAIN    "APP_MAIN"
