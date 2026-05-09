@@ -46,6 +46,7 @@
 #include "esp_openthread_lock.h"
 #include "esp_openthread_netif_glue.h"
 #include "esp_openthread_types.h"
+#include "esp_vfs_eventfd.h"
 #include "openthread/border_router.h"
 #include "openthread/instance.h"
 #include "openthread/logging.h"
@@ -62,42 +63,21 @@
 
 static const char *TAG = TAG_MAIN;
 
-/* ─── OpenThread + Border Router task ────────────────────────────────────── */
+/* ─── Border Router init task (runs after OT stack is started) ───────────── */
 
-static esp_netif_t *s_thread_netif = NULL;
-
-static void ot_br_task(void *arg)
+static void ot_br_init_task(void *arg)
 {
-    esp_openthread_platform_config_t ot_cfg = {
-        /* Use the defaults provided by esp-thread-br SDK.
-         * These configure UART to ESP32-H2 RCP automatically. */
-        .radio_config = ESP_OPENTHREAD_DEFAULT_RADIO_CONFIG(),
-        .host_config  = ESP_OPENTHREAD_DEFAULT_HOST_CONFIG(),
-        .port_config  = ESP_OPENTHREAD_DEFAULT_PORT_CONFIG(),
-    };
-
-    /* Init OpenThread core */
-    ESP_ERROR_CHECK(esp_openthread_init(&ot_cfg));
-
-    /* Attach Thread netif */
-    s_thread_netif = esp_netif_create_default_openthread();
-    ESP_ERROR_CHECK(esp_openthread_netif_glue_init(s_thread_netif));
-
-    /* Init Border Router (bi-directional routing, NAT64, SRP, mDNS) */
+    /* Set the Wi-Fi/Ethernet interface as the backbone for border routing.
+     * get_example_netif() returns the netif created by protocol_examples_common. */
+    esp_openthread_lock_acquire(portMAX_DELAY);
+    esp_openthread_set_backbone_netif(get_example_netif());
     ESP_ERROR_CHECK(esp_openthread_border_router_init());
 
     /* Auto-start: form or join Thread network using NVS dataset */
     ESP_ERROR_CHECK(esp_openthread_auto_start(NULL));
+    esp_openthread_lock_release();
 
     ESP_LOGI(TAG, "OpenThread Border Router running");
-
-    /* This never returns — drives the OpenThread task loop */
-    esp_openthread_launch_mainloop();
-
-    /* Cleanup (never reached) */
-    esp_openthread_netif_glue_deinit(s_thread_netif);
-    esp_netif_destroy(s_thread_netif);
-    esp_openthread_deinit();
     vTaskDelete(NULL);
 }
 
@@ -137,6 +117,12 @@ void app_main(void)
         ESP_ERROR_CHECK(nvs_flash_init());
     }
 
+    /* eventfd is required by the OpenThread stack (netif + task queue + BR) */
+    esp_vfs_eventfd_config_t eventfd_config = {
+        .max_fds = 3,
+    };
+    ESP_ERROR_CHECK(esp_vfs_eventfd_register(&eventfd_config));
+
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
@@ -157,9 +143,19 @@ void app_main(void)
     /* ── 3. Application services init ────────────────────────────────────── */
     ESP_ERROR_CHECK(app_device_registry_init());
 
-    /* ── 4. Launch OpenThread + Border Router ─────────────────────────────── */
-    /* Stack size 10 KB, priority 5 (must be > than Wi-Fi task) */
-    xTaskCreate(ot_br_task, "ot_br_task", 10240, NULL, 5, NULL);
+    /* ── 4. Start OpenThread stack (creates its own task + netif) ─────────── */
+    esp_openthread_config_t ot_config = {
+        .netif_config  = ESP_NETIF_DEFAULT_OPENTHREAD(),
+        .platform_config = {
+            .radio_config = ESP_OPENTHREAD_DEFAULT_RADIO_CONFIG(),
+            .host_config  = ESP_OPENTHREAD_DEFAULT_HOST_CONFIG(),
+            .port_config  = ESP_OPENTHREAD_DEFAULT_PORT_CONFIG(),
+        },
+    };
+    ESP_ERROR_CHECK(esp_openthread_start(&ot_config));
+
+    /* BR init runs in a helper task (needs OT lock + backbone netif) */
+    xTaskCreate(ot_br_init_task, "ot_br_init", 6144, NULL, 4, NULL);
 
     /* Give OT a moment to initialise before starting CoAP listener */
     vTaskDelay(pdMS_TO_TICKS(3000));

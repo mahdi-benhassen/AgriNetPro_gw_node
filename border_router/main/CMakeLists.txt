@@ -18,4 +18,6 @@ idf_component_register(
         freertos
         log
         cjson
+        vfs
+        esp_driver_uart
 )
