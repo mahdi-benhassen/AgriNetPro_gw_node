@@ -7,8 +7,7 @@ idf_component_register(
         nvs_flash
         esp_event
         esp_netif
-        esp_ot_br            # from esp-thread-br SDK
-        openthread           # This provides all esp_openthread.h APIs
+        openthread           # This provides all OpenThread & BR APIs
         protocol_examples_common
         app_device_registry
         app_coap_server
