@@ -20,13 +20,13 @@ idf_component_register(
         cjson
         vfs
         esp_driver_uart
-        mdns
+        espressif__mdns
 )
 
 # Force openthread to depend on mdns and lwip so the linker places them AFTER openthread.
 # This resolves "undefined reference to mdns_query_async_new" and "netif_set_status_callback".
 idf_component_get_property(ot_lib openthread COMPONENT_LIB)
-idf_component_get_property(mdns_lib mdns COMPONENT_LIB)
+idf_component_get_property(mdns_lib espressif__mdns COMPONENT_LIB)
 idf_component_get_property(lwip_lib lwip COMPONENT_LIB)
 
 if(ot_lib)
