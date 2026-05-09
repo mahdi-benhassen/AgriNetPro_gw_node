@@ -3,6 +3,7 @@ idf_component_register(
         "app_br_main.c"
     INCLUDE_DIRS
         "."
+        "../common"
     REQUIRES
         nvs_flash
         esp_event
@@ -15,4 +16,6 @@ idf_component_register(
         app_rest_api
         esp_timer
         freertos
+        log
+        cjson
 )
