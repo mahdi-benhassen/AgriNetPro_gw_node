@@ -96,8 +96,8 @@ esp_err_t app_device_registry_update(const app_sensor_payload_t *payload,
             xSemaphoreGive(s_mutex);
             return ESP_ERR_NO_MEM;
         }
-        snprintf(e->label, sizeof(e->label), "node_%016llX",
-                 (unsigned long long)payload->eui64);
+        snprintf(e->label, sizeof(e->label), "node_%08lX",
+                 (unsigned long)(payload->eui64 & 0xFFFFFFFFUL));
         ESP_LOGI(TAG, "Auto-registered node %016llX",
                  (unsigned long long)payload->eui64);
     }
