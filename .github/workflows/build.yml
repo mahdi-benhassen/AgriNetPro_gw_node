@@ -1,6 +1,5 @@
 name: Build ESP Thread Gateway and Node
 
-# Trigger the workflow on pushes to main or your specific branch, and allow manual runs
 on:
   push:
     branches: [ esp-thread-br ]
@@ -10,7 +9,6 @@ jobs:
   build-thread-binaries:
     name: Build Firmware Binaries
     runs-on: ubuntu-latest
-    # We use the official ESP-IDF v5.2 Docker image which has all tools pre-installed
     container: espressif/idf:release-v5.2
 
     steps:
@@ -19,12 +17,10 @@ jobs:
 
       - name: Clone esp-thread-br repository
         run: |
-          . /opt/esp/idf/export.sh
           # Clone the Thread Border Router repository with all submodules
           git clone --recursive https://github.com/espressif/esp-thread-br.git
           
       - name: Build RCP (ESP32-H2)
-        # The S3 Gateway requires this H2 firmware to exist so it can embed it for OTA updates
         run: |
           . /opt/esp/idf/export.sh
           cd $IDF_PATH/examples/openthread/ot_rcp
@@ -34,48 +30,43 @@ jobs:
       - name: Build Gateway (ESP32-S3)
         run: |
           . /opt/esp/idf/export.sh
+          # FIX 1: Export the path so CMake can find the thread-br components
+          export ESP_THREAD_BR_PATH=${GITHUB_WORKSPACE}/esp-thread-br
           
-          # --- INJECT CUSTOM GATEWAY CODE ---
-          # This copies your custom main.c into the border router example, overwriting the default
-          cp -r ${GITHUB_WORKSPACE}/border_router/* esp-thread-br/examples/basic_thread_border_router/
-          
-          cd esp-thread-br/examples/basic_thread_border_router
+          # FIX 2: Build directly in your standalone project folder
+          cd ${GITHUB_WORKSPACE}/border_router
           idf.py set-target esp32s3
           idf.py build
                   
-          # Create artifact folder
           mkdir -p ${GITHUB_WORKSPACE}/build_artifacts/gw
                   
-          # Copy the correct main binary and rename it
-          cp build/esp_ot_br.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin
+          # FIX 3: Point to the correct binary name based on project(border_router_app)
+          cp build/border_router_app.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/gateway.bin
                   
-          # Copy the rest of the required flashing files
           cp build/bootloader/bootloader.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
           cp build/partition_table/partition-table.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
-          cp build/ota_data_initial.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
-          cp build/web_storage.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
-          cp build/rcp_fw.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/
+
+          # Use "|| true" to prevent the workflow from failing if these optional binaries aren't generated
+          cp build/ota_data_initial.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/ || true
+          cp build/web_storage.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/ || true
+          cp build/rcp_fw.bin ${GITHUB_WORKSPACE}/build_artifacts/gw/ || true
 
       - name: Build Node (ESP32-H2)
         run: |
           . /opt/esp/idf/export.sh
+          # Export the path for the node as well
+          export ESP_THREAD_BR_PATH=${GITHUB_WORKSPACE}/esp-thread-br
           
-          # --- INJECT CUSTOM NODE CODE ---
-          # This copies your custom esp_ot_cli.c into the IDF example, overwriting the default
-          cp -r ${GITHUB_WORKSPACE}/sensor_node/* $IDF_PATH/examples/openthread/ot_cli/
-          
-          # Navigate to the built-in OpenThread CLI example inside ESP-IDF
-          cd $IDF_PATH/examples/openthread/ot_cli
+          # Build directly in your standalone project folder
+          cd ${GITHUB_WORKSPACE}/sensor_node
           idf.py set-target esp32h2
           idf.py build
           
-          # Create artifact folder
           mkdir -p ${GITHUB_WORKSPACE}/build_artifacts/node
           
-          # Copy the correct main binary and rename it
-          cp build/esp_ot_cli.bin ${GITHUB_WORKSPACE}/build_artifacts/node/node.bin
+          # Point to the correct binary name based on project(sensor_node)
+          cp build/sensor_node.bin ${GITHUB_WORKSPACE}/build_artifacts/node/node.bin
           
-          # Copy the rest of the required flashing files
           cp build/bootloader/bootloader.bin ${GITHUB_WORKSPACE}/build_artifacts/node/
           cp build/partition_table/partition-table.bin ${GITHUB_WORKSPACE}/build_artifacts/node/
 
