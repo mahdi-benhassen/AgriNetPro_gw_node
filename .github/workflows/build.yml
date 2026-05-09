@@ -9,12 +9,11 @@ jobs:
   build-thread-binaries:
     name: Build Firmware Binaries
     runs-on: ubuntu-latest
-    container: espressif/idf:release-v5.2
+    container: espressif/idf:release-v5.5
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Clone esp-thread-br repository
         run: |
           # Clone the Thread Border Router repository with all submodules
