@@ -8,7 +8,7 @@ idf_component_register(
         esp_openthread
         openthread
         freertos
-        esp_log
+        log
         esp_timer
         app_sensor
 )

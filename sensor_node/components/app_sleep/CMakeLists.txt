@@ -9,5 +9,5 @@ idf_component_register(
         openthread
         nvs_flash
         freertos
-        esp_log
+        log
 )
