@@ -1,0 +1,50 @@
+menu "Sensor Node Application"
+
+    choice APP_SENSOR_TYPE
+        prompt "Sensor hardware type"
+        default APP_SENSOR_TYPE_DHT22
+        help
+            Select the physical sensor fitted on this node.
+
+        config APP_SENSOR_TYPE_DHT22
+            bool "DHT22 (single-wire bit-bang)"
+
+        config APP_SENSOR_TYPE_SHT31
+            bool "SHT31 (I2C)"
+    endchoice
+
+    config APP_SENSOR_DHT22_GPIO
+        int "DHT22 data GPIO number"
+        depends on APP_SENSOR_TYPE_DHT22
+        default 8
+        help
+            GPIO pin connected to the DHT22 data line.
+
+    config APP_SENSOR_REPORT_INTERVAL_S
+        int "Sensor report interval (seconds)"
+        default 30
+        range 5 3600
+
+    config APP_SLEEP_MODE_LIGHT
+        bool "Use light sleep (Thread stays attached)"
+        default y
+
+    config APP_BATTERY_SENSE_ENABLE
+        bool "Enable battery voltage sensing via ADC"
+        default n
+
+    config APP_LED_GPIO
+        int "LED GPIO number"
+        default 2
+
+    config APP_NODE_LABEL
+        string "Node label"
+        default "SensorNode-01"
+        help
+            Human-readable label sent during registration.
+
+    config APP_NETWORK_ID
+        string "Network ID"
+        default "HomeNet01"
+
+endmenu
