@@ -4,6 +4,9 @@
 
 CONFIG_IDF_TARGET="esp32s3"
 
+# ── Flash size (ESP32-S3 Thread BR board has 8 MB) ────────────────────────────
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+
 # ── Wi-Fi (change to your network) ────────────────────────────────────────────
 CONFIG_EXAMPLE_WIFI_SSID="YourSSID"
 CONFIG_EXAMPLE_WIFI_PASSWORD="YourPassword"
