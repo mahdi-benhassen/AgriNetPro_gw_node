@@ -48,3 +48,7 @@ CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 # ── Partition table ───────────────────────────────────────────────────────────
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# ── VFS eventfd (required by OpenThread) ──────────────────────────────────
+CONFIG_VFS_SUPPORT_IO=y
+CONFIG_VFS_SUPPORT_SELECT=y

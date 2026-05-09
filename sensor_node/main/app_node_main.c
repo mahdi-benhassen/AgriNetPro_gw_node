@@ -24,9 +24,11 @@
 #include "esp_err.h"
 #include "nvs_flash.h"
 #include "esp_event.h"
+#include "esp_netif.h"
 
 /* OpenThread / ESP-IDF Thread integration */
 #include "esp_openthread.h"
+#include "esp_vfs_eventfd.h"
 #include "esp_ot_config.h"
 #include "esp_openthread_lock.h"
 #include "esp_openthread_netif_glue.h"
@@ -198,6 +200,12 @@ void app_main(void)
 
     /* CoAP client */
     ESP_ERROR_CHECK(app_coap_client_init());
+
+    /* --- OpenThread Initialization (ESP-IDF v5.5) --- */
+    ESP_ERROR_CHECK(esp_netif_init());
+    
+    esp_vfs_eventfd_config_t eventfd_config = ESP_VFS_EVENTD_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_vfs_eventfd_register(&eventfd_config));
 
     /* Launch OpenThread task on core 0 */
     xTaskCreate(ot_task, "ot_task", 10240, NULL, 5, NULL);
