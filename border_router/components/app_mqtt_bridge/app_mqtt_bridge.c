@@ -115,6 +115,7 @@ static void handle_downlink(const char *topic, const char *payload)
      */
     char topic_copy[MQTT_TOPIC_MAX_LEN];
     strncpy(topic_copy, topic, sizeof(topic_copy) - 1);
+    topic_copy[sizeof(topic_copy) - 1] = '\0';
 
     char *tok, *saveptr;
     int  idx = 0;

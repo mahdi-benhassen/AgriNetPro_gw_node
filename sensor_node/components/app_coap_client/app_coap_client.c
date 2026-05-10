@@ -87,6 +87,7 @@ static coap_response_t coap_response_handler(coap_session_t *session,
 }
 
 static esp_err_t coap_send_request(coap_request_t method,
+                                   coap_pdu_type_t msg_type,
                                    const char *uri_path,
                                    const uint8_t *payload,
                                    size_t payload_len,
@@ -113,7 +114,7 @@ static esp_err_t coap_send_request(coap_request_t method,
     };
     coap_session_set_app_data(session, &resp_ctx);
 
-    coap_pdu_t *pdu = coap_new_pdu(COAP_MESSAGE_CON, method, session);
+    coap_pdu_t *pdu = coap_new_pdu(msg_type, method, session);
     if (!pdu) {
         coap_session_release(session);
         return ESP_ERR_NO_MEM;
@@ -146,9 +147,14 @@ static esp_err_t coap_send_request(coap_request_t method,
 
     /* Drive the CoAP I/O loop until we get a response or timeout */
     int timeout_ms = COAP_RETRY_DELAY_MS * COAP_MAX_RETRIES;
-    while (!resp_ctx.done && timeout_ms > 0) {
-        coap_io_process(s_ctx, 200);
-        timeout_ms -= 200;
+    if (msg_type == COAP_MESSAGE_NON) {
+        coap_io_process(s_ctx, 50); // Just process quickly for NON
+        resp_ctx.done = true; // Don't block waiting for response
+    } else {
+        while (!resp_ctx.done && timeout_ms > 0) {
+            coap_io_process(s_ctx, 200);
+            timeout_ms -= 200;
+        }
     }
 
     coap_session_release(session);
@@ -213,6 +219,7 @@ esp_err_t app_coap_client_register(const char *label)
 
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     esp_err_t ret = coap_send_request(COAP_REQUEST_POST,
+                                      COAP_MESSAGE_CON,
                                       COAP_URI_SENSOR_REG,
                                       (uint8_t *)&reg, sizeof(reg),
                                       NULL, NULL);
@@ -256,6 +263,7 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading)
 
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     esp_err_t ret = coap_send_request(COAP_REQUEST_POST,
+                                      COAP_MESSAGE_NON,
                                       COAP_URI_SENSOR_DATA,
                                       (uint8_t *)&payload, sizeof(payload),
                                       NULL, NULL);
@@ -280,6 +288,7 @@ esp_err_t app_coap_client_poll_cmd(app_cmd_payload_t *cmd)
 
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     esp_err_t ret = coap_send_request(COAP_REQUEST_GET,
+                                      COAP_MESSAGE_CON,
                                       COAP_URI_CMD_GET,
                                       NULL, 0,
                                       buf, &len);

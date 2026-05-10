@@ -41,6 +41,10 @@ CONFIG_COAP_LOG_DEFAULT_LEVEL=1
 # ── FreeRTOS ──────────────────────────────────────────────────────────────────
 CONFIG_FREERTOS_HZ=1000
 CONFIG_FREERTOS_UNICORE=y        # ESP32-H2 is single-core
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+
+# ── Power Management ──────────────────────────────────────────────────────────
+CONFIG_PM_ENABLE=y
 
 # ── NVS ───────────────────────────────────────────────────────────────────────
 CONFIG_NVS_ENCRYPTION=n
