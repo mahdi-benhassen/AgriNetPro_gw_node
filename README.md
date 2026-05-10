@@ -252,19 +252,133 @@ to your Border Router's IP address.  The dashboard:
 
 ---
 
-## 8  Customising the Sensor Protocol
+## 8  Integrating New Sensors (Modular HAL)
 
-All shared constants live in `common/app_protocol.h`.  To add a new sensor type:
+The sensor node firmware uses a Hardware Abstraction Layer (HAL) to support a modular, plug-and-play sensor architecture. The main application (`app_node_main.c`) is completely decoupled from the specific sensor hardware. The selection is done at build time using `menuconfig`.
 
-1. Add an entry to `app_sensor_type_t` enum
-2. Extend `app_sensor_payload_t` if needed (bump `APP_PROTO_VERSION`)
-3. Update `app_sensor_init()` / `app_sensor_read()` in the sensor_node
-4. Update `app_device_registry_update()` to store the new fields
-5. Update the MQTT bridge JSON builder to publish the new fields
+### Step-by-Step Guide to Adding a New Sensor
+
+**1. Create the Driver File**
+Create a new C file in `sensor_node/components/app_sensor/driver_my_sensor.c` that implements the `app_sensor_driver_t` interface:
+
+```c
+#include "app_sensor_driver.h"
+
+static esp_err_t my_sensor_init(void) {
+    // Initialize I2C/SPI/ADC etc.
+    return ESP_OK;
+}
+
+static esp_err_t my_sensor_read(app_sensor_reading_t *out) {
+    // Read from the sensor hardware
+    out->temperature_c = 25.0f;
+    out->humidity_pct = 50.0f;
+    out->valid = true;
+    return ESP_OK;
+}
+
+static esp_err_t my_sensor_deinit(void) {
+    // Clean up
+    return ESP_OK;
+}
+
+// Export the driver struct
+const app_sensor_driver_t sensor_driver_my_sensor = {
+    .init = my_sensor_init,
+    .read = my_sensor_read,
+    .deinit = my_sensor_deinit
+};
+```
+
+**2. Update the HAL Registry**
+In `sensor_node/components/app_sensor/include/app_sensor_driver.h`, declare your new driver:
+```c
+extern const app_sensor_driver_t sensor_driver_my_sensor;
+```
+
+**3. Add Kconfig Options**
+Edit `sensor_node/components/app_sensor/Kconfig.projbuild` to add your sensor to the choice menu and define any configuration values:
+```kconfig
+config APP_SENSOR_TYPE_MY_SENSOR
+    bool "My Custom Sensor (I2C)"
+
+config APP_SENSOR_MY_SENSOR_I2C_ADDR
+    hex "I2C Address"
+    depends on APP_SENSOR_TYPE_MY_SENSOR
+    default 0x44
+```
+
+**4. Wire the Build-Time Selection**
+In `sensor_node/components/app_sensor/app_sensor.c`, map the Kconfig selection to your driver:
+```c
+static const app_sensor_driver_t *s_driver = 
+#if defined(CONFIG_APP_SENSOR_TYPE_DHT22)
+    &sensor_driver_dht22;
+#elif defined(CONFIG_APP_SENSOR_TYPE_SHT31)
+    &sensor_driver_sht31;
+#elif defined(CONFIG_APP_SENSOR_TYPE_MY_SENSOR)
+    &sensor_driver_my_sensor;
+#else
+    NULL;
+#endif
+```
+
+**5. Include the File in CMake**
+Finally, add your new file to `sensor_node/components/app_sensor/CMakeLists.txt` using the Kconfig condition:
+```cmake
+set(srcs "app_sensor.c")
+
+if(CONFIG_APP_SENSOR_TYPE_DHT22)
+    list(APPEND srcs "driver_dht22.c")
+elseif(CONFIG_APP_SENSOR_TYPE_SHT31)
+    list(APPEND srcs "driver_sht31.c")
+elseif(CONFIG_APP_SENSOR_TYPE_MY_SENSOR)
+    list(APPEND srcs "driver_my_sensor.c")
+endif()
+
+idf_component_register(
+    SRCS ${srcs}
+    INCLUDE_DIRS "include"
+    REQUIRES driver esp_adc log freertos
+)
+```
 
 ---
 
-## 9  Production Hardening Checklist
+## 9  Recommended Sensors for AgriNetPro
+
+To cover the specific needs of smart poultry systems, smart agriculture, and greenhouses, the following sensors are recommended for integration:
+
+### 1. Smart Greenhouses
+*   **Air Temperature & Humidity:** `SHT31-D` or `BME280` (High precision, reliable in high humidity).
+*   **Soil Moisture & Temperature:** `SHT-10` (Robust, waterproof housing) or `Capacitive Soil Moisture Sensors` (Corrosion-resistant).
+*   **CO2 Levels:** `SCD30` or `MH-Z19` (Essential for monitoring CO2 enrichment in greenhouses).
+*   **Light Intensity (PAR):** `VEML7700` or `BH1750` (Optimizing grow lights or shading screens).
+
+### 2. Smart Poultry Systems
+*   **Air Quality (Ammonia & CO2):** `MQ-135` or specialized NH3 electrochemical sensors (Crucial for poultry health and ventilation control).
+*   **Ambient Temperature & Humidity:** `DHT22` or `SHT31-D` (Monitoring heat stress index).
+*   **Luminosity:** `TSL2561` (Monitoring daylight and artificial lighting schedules for egg production).
+
+### 3. Open Field Smart Agriculture
+*   **Soil Parameters:** `DS18B20` (Soil temperature) and `SMT50` (Volumetric water content).
+*   **Microclimate Weather Stations:** Integration of Anemometers (Wind Speed) and Tipping Bucket Rain Gauges via GPIO pulse counting.
+*   **Leaf Wetness:** Resistive/capacitive leaf wetness grids (Predicting fungal diseases).
+
+---
+
+## 10  Customising the Sensor Protocol
+
+All shared constants live in `common/app_protocol.h`.  If your new sensor returns fields beyond just temperature and humidity, you will need to extend the protocol:
+
+1. Add an entry to `app_sensor_type_t` enum
+2. Extend `app_sensor_payload_t` if needed (bump `APP_PROTO_VERSION`)
+3. Update `app_device_registry_update()` in the border router to store the new fields
+4. Update the MQTT bridge JSON builder (`app_mqtt_bridge.c`) to publish the new fields
+
+---
+
+## 11  Production Hardening Checklist
 
 - [ ] Enable DTLS on CoAP (set `CONFIG_COAP_MBEDTLS_PSK=y`, provision PSK)
 - [ ] Use TLS MQTT (`mqtts://` + server certificate)
