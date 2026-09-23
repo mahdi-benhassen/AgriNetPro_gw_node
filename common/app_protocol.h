@@ -46,6 +46,7 @@ typedef enum {
 #define COAP_URI_SENSOR_DATA    "/sensor/data"      /**< POST sensor payload     */
 #define COAP_URI_SENSOR_REG     "/sensor/register"  /**< POST node registration  */
 #define COAP_URI_CMD_GET        "/cmd"              /**< GET pending commands     */
+#define COAP_URI_CMD_ACK        "/cmd/ack"          /**< POST command execution ACK */
 #define COAP_URI_OTA_NOTIFY     "/ota/notify"       /**< POST OTA ready signal   */
 
 /* ─── MQTT Topics  (border router ↔ cloud) ────────────────────────────────── */
@@ -119,6 +120,26 @@ typedef struct __attribute__((packed)) {
     uint16_t    cmd_param;          /**< Generic 16-bit parameter              */
     char        cmd_payload[60];    /**< Variable command payload (e.g. URL)   */
 } app_cmd_payload_t;
+
+/* ─── Command ACK payload (node → border router → MQTT cmd/ack) ─────────── */
+typedef enum {
+    CMD_ACK_SUCCESS          = 0x00,
+    CMD_ACK_ERR_INVALID_CMD  = 0x01,
+    CMD_ACK_ERR_EXEC_FAILED  = 0x02,
+    CMD_ACK_ERR_OTA_FAILED   = 0x03,
+} app_cmd_ack_status_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t     version;            /**< APP_PROTO_VERSION                     */
+    uint8_t     cmd_id;             /**< ID of executed command                */
+    uint8_t     cmd_type;           /**< app_cmd_type_t                        */
+    uint8_t     status_code;        /**< app_cmd_ack_status_t                  */
+    uint64_t    eui64;              /**< Node EUI-64                           */
+    char        message[32];        /**< Human-readable status/error string    */
+} app_cmd_ack_payload_t;
+
+_Static_assert(sizeof(app_cmd_ack_payload_t) == 44,
+               "app_cmd_ack_payload_t size mismatch — check padding!");
 
 /* ─── Helper macros ────────────────────────────────────────────────────────── */
 #define TEMP_RAW_TO_FLOAT(raw)      ((float)(raw) / 100.0f)

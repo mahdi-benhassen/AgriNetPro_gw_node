@@ -43,6 +43,11 @@ typedef struct {
     uint8_t                 pending_cmd_id;
     uint16_t                pending_cmd_param;
     char                    pending_cmd_payload[60];
+    uint8_t                 last_ack_cmd_id;            /**< Last ACK cmd_id       */
+    uint8_t                 last_ack_cmd_type;          /**< Last ACK cmd_type     */
+    uint8_t                 last_ack_status;            /**< Last ACK status_code  */
+    char                    last_ack_msg[32];           /**< Last ACK message      */
+    time_t                  last_ack_time;              /**< Timestamp of last ACK */
 } app_device_entry_t;
 
 /** @brief Callback invoked when a device reports new telemetry. */
@@ -140,6 +145,33 @@ esp_err_t app_device_registry_get_by_ipv6(const char *ipv6_str, app_device_entry
  * @brief Register a callback invoked when a device status changes.
  */
 void app_device_registry_set_status_cb(app_device_status_cb_t cb);
+
+/** @brief Callback invoked when a command ACK arrives from a node. */
+typedef void (*app_device_cmd_ack_cb_t)(const app_device_entry_t *dev,
+                                        const app_cmd_ack_payload_t *ack);
+
+/**
+ * @brief Register a callback invoked when a command ACK is received.
+ */
+void app_device_registry_set_cmd_ack_cb(app_device_cmd_ack_cb_t cb);
+
+/**
+ * @brief Record a command execution ACK received from a node.
+ *
+ * @param ack Command ACK payload.
+ * @return ESP_OK if node exists, ESP_ERR_NOT_FOUND otherwise.
+ */
+esp_err_t app_device_registry_record_cmd_ack(const app_cmd_ack_payload_t *ack);
+
+/**
+ * @brief Save registered devices table to NVS flash storage.
+ */
+esp_err_t app_device_registry_save_to_nvs(void);
+
+/**
+ * @brief Restore registered devices table from NVS flash storage.
+ */
+esp_err_t app_device_registry_load_from_nvs(void);
 
 /**
  * @brief Sweep offline nodes (call periodically from a timer task).

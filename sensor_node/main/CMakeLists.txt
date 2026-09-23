@@ -14,4 +14,8 @@ idf_component_register(
         driver
         esp_timer
         vfs
+        esp_https_ota
+        esp_http_client
+        app_update
+        esp_crt_bundle
 )

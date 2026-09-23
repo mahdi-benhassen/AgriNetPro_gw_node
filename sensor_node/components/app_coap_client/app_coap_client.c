@@ -47,7 +47,11 @@ static bool resolve_br_address(coap_address_t *addr)
     memset(addr, 0, sizeof(*addr));
     addr->size = sizeof(struct sockaddr_in6);
     sin6->sin6_family = AF_INET6;
+#if defined(CONFIG_APP_COAP_SEC_DTLS_PSK)
+    sin6->sin6_port   = htons(BR_COAPS_PORT);
+#else
     sin6->sin6_port   = htons(BR_COAP_PORT);
+#endif
 
     if (inet_pton(AF_INET6, BR_COAP_ADDR, &sin6->sin6_addr) != 1) {
         ESP_LOGE(TAG, "Failed to parse BR address: %s", BR_COAP_ADDR);
@@ -102,8 +106,21 @@ static esp_err_t coap_send_request(coap_request_t method,
         return ESP_ERR_NOT_FOUND;
     }
 
+#if defined(CONFIG_APP_COAP_SEC_DTLS_PSK)
+    coap_dtls_cpsk_t cpsk_setup_data;
+    memset(&cpsk_setup_data, 0, sizeof(cpsk_setup_data));
+    cpsk_setup_data.version = COAP_DTLS_CPSK_SETUP_VERSION;
+    cpsk_setup_data.psk_info.identity.s = (const uint8_t *)APP_COAP_PSK_IDENTITY;
+    cpsk_setup_data.psk_info.identity.length = strlen(APP_COAP_PSK_IDENTITY);
+    cpsk_setup_data.psk_info.key.s = (const uint8_t *)APP_COAP_PSK_KEY;
+    cpsk_setup_data.psk_info.key.length = strlen(APP_COAP_PSK_KEY);
+
+    coap_session_t *session = coap_new_client_session_psk2(
+        s_ctx, NULL, &br_addr, COAP_PROTO_DTLS, &cpsk_setup_data);
+#else
     coap_session_t *session = coap_new_client_session(
         s_ctx, NULL, &br_addr, COAP_PROTO_UDP);
+#endif
     if (!session) {
         ESP_LOGE(TAG, "Failed to create CoAP session");
         return ESP_FAIL;
@@ -336,6 +353,56 @@ esp_err_t app_coap_client_poll_cmd(app_cmd_payload_t *cmd)
             ESP_LOGI(TAG, "Command received: type=%d id=%d param=%d",
                      cmd->cmd_type, cmd->cmd_id, cmd->cmd_param);
         }
+    }
+    return ret;
+}
+
+esp_err_t app_coap_client_send_ack(uint8_t cmd_id,
+                                   app_cmd_type_t cmd_type,
+                                   uint8_t status_code,
+                                   const char *msg)
+{
+    if (!s_ctx || !s_mutex) return ESP_ERR_INVALID_STATE;
+
+    if (s_node_eui64 == 0) {
+        esp_openthread_lock_acquire(portMAX_DELAY);
+        otInstance         *ot  = esp_openthread_get_instance();
+        if (ot) {
+            const otExtAddress *ext = otLinkGetExtendedAddress(ot);
+            for (int i = 0; i < 8; i++) {
+                s_node_eui64 = (s_node_eui64 << 8) | ext->m8[i];
+            }
+        }
+        esp_openthread_lock_release();
+    }
+
+    app_cmd_ack_payload_t ack;
+    memset(&ack, 0, sizeof(ack));
+    ack.version     = APP_PROTO_VERSION;
+    ack.cmd_id      = cmd_id;
+    ack.cmd_type    = (uint8_t)cmd_type;
+    ack.status_code = status_code;
+    ack.eui64       = s_node_eui64;
+    if (msg) {
+        strncpy(ack.message, msg, sizeof(ack.message) - 1);
+        ack.message[sizeof(ack.message) - 1] = '\0';
+    }
+
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    esp_err_t ret = coap_send_request(COAP_REQUEST_POST,
+                                      COAP_MESSAGE_CON,
+                                      COAP_URI_CMD_ACK,
+                                      NULL,
+                                      (const uint8_t *)&ack,
+                                      sizeof(ack),
+                                      NULL, NULL);
+    xSemaphoreGive(s_mutex);
+
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Command ACK sent: id=%d type=%d status=%d",
+                 cmd_id, cmd_type, status_code);
+    } else {
+        ESP_LOGW(TAG, "Failed to send command ACK: %s", esp_err_to_name(ret));
     }
     return ret;
 }

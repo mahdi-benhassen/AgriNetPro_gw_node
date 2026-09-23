@@ -32,6 +32,25 @@
 #define BR_COAP_ADDR    "fd00::1"   /* Thread mesh-local prefix + ::1          */
 #endif
 #define BR_COAP_PORT    5683
+#define BR_COAPS_PORT   5684
+
+/* ─── CoAP DTLS Pre-Shared Key (PSK) Security ─────────────────────────────── */
+#ifdef CONFIG_APP_COAP_PSK_IDENTITY
+#define APP_COAP_PSK_IDENTITY   CONFIG_APP_COAP_PSK_IDENTITY
+#else
+#define APP_COAP_PSK_IDENTITY   "AgriNetProNode"
+#endif
+
+#ifdef CONFIG_APP_COAP_PSK_KEY
+#define APP_COAP_PSK_KEY        CONFIG_APP_COAP_PSK_KEY
+#else
+#define APP_COAP_PSK_KEY        "AgriNetProSecKey2026"
+#endif
+
+/* ─── NVS Device Registry Persistence ─────────────────────────────────────── */
+#define NVS_NAMESPACE_REGISTRY      "dev_reg"
+#define NVS_KEY_REGISTRY_COUNT      "dev_count"
+#define NVS_KEY_REGISTRY_BLOB       "dev_table"
 
 /* ─── MQTT broker ─────────────────────────────────────────────────────────── */
 #ifdef CONFIG_MQTT_BROKER_URI

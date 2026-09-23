@@ -62,6 +62,16 @@ static cJSON *device_to_json(const app_device_entry_t *dev)
     cJSON_AddBoolToObject(r,   "battery_low",
         (dev->last_reading.node_flags & NODE_FLAG_BATTERY_LOW) != 0);
 
+    /* Latest command ACK */
+    if (dev->last_ack_time > 0) {
+        cJSON *ack = cJSON_AddObjectToObject(obj, "last_ack");
+        cJSON_AddNumberToObject(ack, "cmd_id", dev->last_ack_cmd_id);
+        cJSON_AddNumberToObject(ack, "cmd_type", dev->last_ack_cmd_type);
+        cJSON_AddNumberToObject(ack, "status_code", dev->last_ack_status);
+        cJSON_AddStringToObject(ack, "message", dev->last_ack_msg);
+        cJSON_AddNumberToObject(ack, "ts", (double)dev->last_ack_time);
+    }
+
     return obj;
 }
 

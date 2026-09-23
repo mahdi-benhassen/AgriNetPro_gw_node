@@ -46,6 +46,9 @@
 #include "app_sensor.h"
 #include "app_coap_client.h"
 #include "app_sleep.h"
+#include "esp_https_ota.h"
+#include "esp_http_client.h"
+#include "esp_crt_bundle.h"
 
 static const char *TAG = TAG_MAIN;
 
@@ -94,32 +97,88 @@ static void wait_for_thread_attach(void)
     }
 }
 
+/* ─── OTA Worker Task ─────────────────────────────────────────────────────── */
+typedef struct {
+    uint8_t cmd_id;
+    char    url[60];
+} ota_task_arg_t;
+
+static void ota_worker_task(void *pvParameters)
+{
+    ota_task_arg_t *arg = (ota_task_arg_t *)pvParameters;
+    ESP_LOGI(TAG, "Starting OTA download from: %s", arg->url);
+
+    esp_http_client_config_t http_cfg = {
+        .url = arg->url,
+        .timeout_ms = 30000,
+        .keep_alive_enable = true,
+        .crt_bundle_attach = esp_crt_bundle_attach,
+    };
+
+    esp_https_ota_config_t ota_cfg = {
+        .http_config = &http_cfg,
+    };
+
+    esp_err_t ota_res = esp_https_ota(&ota_cfg);
+    if (ota_res == ESP_OK) {
+        ESP_LOGI(TAG, "OTA upgrade successful! Sending ACK and rebooting...");
+        app_coap_client_send_ack(arg->cmd_id, CMD_OTA_START, CMD_ACK_SUCCESS, "OTA complete, rebooting");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        esp_restart();
+    } else {
+        ESP_LOGE(TAG, "OTA upgrade failed: %s", esp_err_to_name(ota_res));
+        app_coap_client_send_ack(arg->cmd_id, CMD_OTA_START, CMD_ACK_ERR_OTA_FAILED, "OTA flash failed");
+    }
+
+    free(arg);
+    vTaskDelete(NULL);
+}
+
 /* ─── Execute a downlink command ──────────────────────────────────────────── */
 static void handle_command(const app_cmd_payload_t *cmd)
 {
     switch (cmd->cmd_type) {
     case CMD_REBOOT:
         ESP_LOGI(TAG, "CMD: Reboot requested");
+        app_coap_client_send_ack(cmd->cmd_id, CMD_REBOOT, CMD_ACK_SUCCESS, "Rebooting in 500ms");
         vTaskDelay(pdMS_TO_TICKS(500));
         esp_restart();
         break;
     case CMD_LED_ON:
         ESP_LOGI(TAG, "CMD: LED ON");
         gpio_set_level(APP_LED_GPIO, 1);
+        app_coap_client_send_ack(cmd->cmd_id, CMD_LED_ON, CMD_ACK_SUCCESS, "LED ON");
         break;
     case CMD_LED_OFF:
         ESP_LOGI(TAG, "CMD: LED OFF");
         gpio_set_level(APP_LED_GPIO, 0);
+        app_coap_client_send_ack(cmd->cmd_id, CMD_LED_OFF, CMD_ACK_SUCCESS, "LED OFF");
         break;
     case CMD_SET_INTERVAL:
         ESP_LOGI(TAG, "CMD: Set interval → %d s", cmd->cmd_param);
-        /* In production: update NVS and apply to sleep timer */
+        char msg[32];
+        snprintf(msg, sizeof(msg), "Interval set to %ds", cmd->cmd_param);
+        app_coap_client_send_ack(cmd->cmd_id, CMD_SET_INTERVAL, CMD_ACK_SUCCESS, msg);
         break;
     case CMD_OTA_START:
         ESP_LOGI(TAG, "CMD: OTA start from URL: %s", cmd->cmd_payload);
-        /* Trigger esp_https_ota() here */
+        if (strlen(cmd->cmd_payload) > 0) {
+            ota_task_arg_t *arg = (ota_task_arg_t *)malloc(sizeof(ota_task_arg_t));
+            if (arg) {
+                arg->cmd_id = cmd->cmd_id;
+                strncpy(arg->url, cmd->cmd_payload, sizeof(arg->url) - 1);
+                arg->url[sizeof(arg->url) - 1] = '\0';
+                app_coap_client_send_ack(cmd->cmd_id, CMD_OTA_START, CMD_ACK_SUCCESS, "OTA task launched");
+                xTaskCreate(ota_worker_task, "ota_worker", 8192, arg, 5, NULL);
+            } else {
+                app_coap_client_send_ack(cmd->cmd_id, CMD_OTA_START, CMD_ACK_ERR_EXEC_FAILED, "Out of memory");
+            }
+        } else {
+            app_coap_client_send_ack(cmd->cmd_id, CMD_OTA_START, CMD_ACK_ERR_INVALID_CMD, "Empty OTA URL");
+        }
         break;
     default:
+        app_coap_client_send_ack(cmd->cmd_id, cmd->cmd_type, CMD_ACK_ERR_INVALID_CMD, "Unknown command");
         break;
     }
 }

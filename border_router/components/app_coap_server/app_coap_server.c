@@ -155,6 +155,37 @@ static void handler_cmd_get(coap_resource_t *resource,
     coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
 }
 
+/* ─── POST /cmd/ack ──────────────────────────────────────────────────────── */
+static void handler_cmd_ack(coap_resource_t *resource,
+                             coap_session_t  *session,
+                             const coap_pdu_t *request,
+                             const coap_string_t *query,
+                             coap_pdu_t *response)
+{
+    const uint8_t *data;
+    size_t len, offset, total;
+
+    if (!coap_get_data_large(request, &len, &data, &offset, &total) ||
+        len < sizeof(app_cmd_ack_payload_t)) {
+        ESP_LOGW(TAG, "/cmd/ack: bad payload length %zu", len);
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_REQUEST);
+        return;
+    }
+
+    const app_cmd_ack_payload_t *ack = (const app_cmd_ack_payload_t *)data;
+    if (ack->version != APP_PROTO_VERSION) {
+        ESP_LOGW(TAG, "/cmd/ack: version mismatch (got %d, expected %d)",
+                 ack->version, APP_PROTO_VERSION);
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_REQUEST);
+        return;
+    }
+
+    esp_err_t ret = app_device_registry_record_cmd_ack(ack);
+    coap_pdu_set_code(response,
+                      ret == ESP_OK ? COAP_RESPONSE_CODE_CHANGED
+                                    : COAP_RESPONSE_CODE_NOT_FOUND);
+}
+
 /* ─── CoAP server task ──────────────────────────────────────────────────── */
 static void coap_server_task(void *arg)
 {
@@ -188,6 +219,35 @@ static void coap_server_task(void *arg)
         return;
     }
 
+    /* Bind DTLS endpoint on port 5684 if DTLS is supported */
+    if (coap_dtls_is_supported()) {
+        coap_dtls_spsk_t spsk_setup_data;
+        memset(&spsk_setup_data, 0, sizeof(spsk_setup_data));
+        spsk_setup_data.version = COAP_DTLS_SPSK_SETUP_VERSION;
+        spsk_setup_data.psk_info.hint.s = (const uint8_t *)APP_COAP_PSK_IDENTITY;
+        spsk_setup_data.psk_info.hint.length = strlen(APP_COAP_PSK_IDENTITY);
+        spsk_setup_data.psk_info.key.s = (const uint8_t *)APP_COAP_PSK_KEY;
+        spsk_setup_data.psk_info.key.length = strlen(APP_COAP_PSK_KEY);
+        coap_context_set_psk2(ctx, &spsk_setup_data);
+
+        coap_address_t addr_dtls;
+        memset(&addr_dtls, 0, sizeof(addr_dtls));
+        addr_dtls.size = sizeof(struct sockaddr_in6);
+        struct sockaddr_in6 *sin6_dtls = (struct sockaddr_in6 *)&addr_dtls.addr;
+        sin6_dtls->sin6_family = AF_INET6;
+        sin6_dtls->sin6_addr   = in6addr_any;
+        sin6_dtls->sin6_port   = htons(BR_COAPS_PORT);
+
+        coap_endpoint_t *ep_dtls = coap_new_endpoint(ctx, &addr_dtls, COAP_PROTO_DTLS);
+        if (ep_dtls) {
+            ESP_LOGI(TAG, "CoAPS (DTLS) server listening on [::]:%d", BR_COAPS_PORT);
+        } else {
+            ESP_LOGW(TAG, "Failed to bind CoAPS DTLS endpoint on port %d", BR_COAPS_PORT);
+        }
+    } else {
+        ESP_LOGW(TAG, "CoAP DTLS not supported in current build");
+    }
+
     /* Register resources */
     coap_resource_t *r;
 
@@ -203,7 +263,12 @@ static void coap_server_task(void *arg)
     coap_register_handler(r, COAP_REQUEST_GET, handler_cmd_get);
     coap_add_resource(ctx, r);
 
-    ESP_LOGI(TAG, "CoAP server listening on [::]:%d", BR_COAP_PORT);
+    r = coap_resource_init(coap_make_str_const(COAP_URI_CMD_ACK + 1), 0);
+    coap_register_handler(r, COAP_REQUEST_POST, handler_cmd_ack);
+    coap_add_resource(ctx, r);
+
+    ESP_LOGI(TAG, "CoAP server listening on [::]:%d and [::]:%d (DTLS)",
+             BR_COAP_PORT, BR_COAPS_PORT);
 
     while (1) {
         coap_io_process(ctx, 1000);   /* 1-second I/O timeout */

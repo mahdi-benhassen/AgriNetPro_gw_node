@@ -40,4 +40,16 @@ menu "ESP Thread Border Router — Application Layer"
             A node is marked offline if no telemetry is received within this
             duration.  Set to at least 2× the sensor reporting interval.
 
+    config APP_COAP_PSK_IDENTITY
+        string "CoAP DTLS PSK Identity Hint"
+        default "AgriNetProNode"
+        help
+            Expected DTLS PSK Identity from connecting sensor nodes.
+
+    config APP_COAP_PSK_KEY
+        string "CoAP DTLS Pre-Shared Key"
+        default "AgriNetProSecKey2026"
+        help
+            Secret DTLS Pre-Shared Key for encrypted CoAPS sessions on port 5684.
+
 endmenu

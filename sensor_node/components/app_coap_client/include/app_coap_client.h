@@ -65,6 +65,22 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading);
 esp_err_t app_coap_client_poll_cmd(app_cmd_payload_t *cmd);
 
 /**
+ * @brief Send a command execution acknowledgement back to the border router.
+ *
+ * Sends POST /cmd/ack with app_cmd_ack_payload_t.
+ *
+ * @param cmd_id      Command identifier received from BR.
+ * @param cmd_type    Type of command executed.
+ * @param status_code 0 for success, non-zero for error (app_cmd_ack_status_t).
+ * @param msg         Human-readable diagnostic string (up to 31 chars).
+ * @return ESP_OK on acknowledged delivery.
+ */
+esp_err_t app_coap_client_send_ack(uint8_t cmd_id,
+                                   app_cmd_type_t cmd_type,
+                                   uint8_t status_code,
+                                   const char *msg);
+
+/**
  * @brief Deinitialise and free CoAP resources.
  */
 void app_coap_client_deinit(void);

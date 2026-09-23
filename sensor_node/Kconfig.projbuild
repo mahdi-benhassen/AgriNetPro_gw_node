@@ -79,4 +79,27 @@ menu "ESP Thread Sensor Node"
             Logical name of this Thread network.  Must match the border router
             configuration.  Used as path component in MQTT topics.
 
+    choice APP_COAP_SECURITY
+        prompt "CoAP transport security"
+        default APP_COAP_SEC_NONE
+        help
+            Select whether to use plaintext CoAP (UDP port 5683) or
+            encrypted CoAPS (DTLS PSK port 5684).
+
+        config APP_COAP_SEC_NONE
+            bool "Plain CoAP / UDP (Port 5683)"
+        config APP_COAP_SEC_DTLS_PSK
+            bool "CoAPS / DTLS PSK (Port 5684)"
+    endchoice
+
+    config APP_COAP_PSK_IDENTITY
+        string "CoAP DTLS PSK Identity"
+        depends on APP_COAP_SEC_DTLS_PSK
+        default "AgriNetProNode"
+
+    config APP_COAP_PSK_KEY
+        string "CoAP DTLS Pre-Shared Key"
+        depends on APP_COAP_SEC_DTLS_PSK
+        default "AgriNetProSecKey2026"
+
 endmenu

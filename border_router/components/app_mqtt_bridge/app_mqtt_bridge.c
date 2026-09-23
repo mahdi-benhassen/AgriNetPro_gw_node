@@ -21,6 +21,7 @@
 #include "esp_log.h"
 #include "esp_event.h"
 #include "mqtt_client.h"
+#include "esp_crt_bundle.h"
 #include "cJSON.h"
 #include <stdio.h>
 #include <string.h>
@@ -99,6 +100,37 @@ static void publish_status(uint64_t eui64, bool online)
     if (json) {
         /* Status published with retain=1 so a late subscriber sees current state */
         esp_mqtt_client_publish(s_client, topic, json, 0, MQTT_QOS, 1);
+        free(json);
+    }
+}
+
+/* ─── Publish node command ACK JSON ──────────────────────────────────────── */
+static void publish_cmd_ack(const app_device_entry_t *dev,
+                            const app_cmd_ack_payload_t *ack)
+{
+    if (!s_connected || !s_client) return;
+
+    char topic[MQTT_TOPIC_MAX_LEN];
+    build_topic(topic, sizeof(topic), ack->eui64, MQTT_SUBTOPIC_CMD_ACK);
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "network_id",  APP_NETWORK_ID);
+    char eui_str[17];
+    snprintf(eui_str, sizeof(eui_str), "%016llX", (unsigned long long)ack->eui64);
+    cJSON_AddStringToObject(root, "eui64",       eui_str);
+    cJSON_AddNumberToObject(root, "cmd_id",      ack->cmd_id);
+    cJSON_AddNumberToObject(root, "cmd_type",    ack->cmd_type);
+    cJSON_AddNumberToObject(root, "status_code", ack->status_code);
+    cJSON_AddStringToObject(root, "status",      ack->status_code == 0 ? "success" : "error");
+    cJSON_AddStringToObject(root, "message",     ack->message);
+    cJSON_AddNumberToObject(root, "ts",          (double)time(NULL));
+
+    char *json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (json) {
+        esp_mqtt_client_publish(s_client, topic, json, 0, MQTT_QOS, 0);
+        ESP_LOGI(TAG, "MQTT ↑ %s: %s", topic, json);
         free(json);
     }
 }
@@ -245,6 +277,13 @@ esp_err_t app_mqtt_bridge_start(void)
         .network.reconnect_timeout_ms = 5000,
     };
 
+    /* Enable TLS certificate verification bundle for secure brokers (mqtts:// or ssl://) */
+    if (strncmp(MQTT_BROKER_URI, "mqtts://", 8) == 0 ||
+        strncmp(MQTT_BROKER_URI, "ssl://", 6) == 0) {
+        cfg.broker.verification.crt_bundle_attach = esp_crt_bundle_attach;
+        ESP_LOGI(TAG, "MQTT TLS enabled with ESP CRT Bundle verification");
+    }
+
     s_client = esp_mqtt_client_init(&cfg);
     if (!s_client) {
         ESP_LOGE(TAG, "Failed to init MQTT client");
@@ -257,9 +296,10 @@ esp_err_t app_mqtt_bridge_start(void)
                                                    NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(s_client));
 
-    /* Hook into device registry to publish on every new reading and status transition */
+    /* Hook into device registry to publish on every new reading, status transition, and command ACK */
     app_device_registry_set_telemetry_cb(on_telemetry);
     app_device_registry_set_status_cb(on_device_status);
+    app_device_registry_set_cmd_ack_cb(publish_cmd_ack);
 
     ESP_LOGI(TAG, "MQTT bridge started → %s", MQTT_BROKER_URI);
     return ESP_OK;
