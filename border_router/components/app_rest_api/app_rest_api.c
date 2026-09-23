@@ -201,7 +201,7 @@ static esp_err_t handler_get_status(httpd_req_t *req)
 
 
 
-/* ─── OPTIONS /api/v1/* (CORS preflight) ─────────────────────────────────── */
+// ─── OPTIONS /api/v1/wildcard (CORS preflight) ───────────────────────────
 
 static esp_err_t handler_options(httpd_req_t *req)
 {
