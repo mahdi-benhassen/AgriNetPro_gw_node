@@ -42,10 +42,22 @@ esp_err_t app_sleep_init(app_sleep_mode_t mode);
 void app_sleep_enter(uint32_t duration_ms);
 
 /**
- * @brief Called on wake from deep sleep to restore Thread state from NVS.
- * @return true if this is a wake-from-deep-sleep boot, false for cold boot.
+ * @brief Check if current boot is caused by wakeup from deep sleep.
+ * @return true if wake-from-deep-sleep boot, false for cold boot.
  */
 bool app_sleep_is_wakeup_from_deep(void);
+
+/**
+ * @brief Configure Thread link mode as a Sleepy End Device (SED).
+ * Call this AFTER OpenThread stack is initialized and attached.
+ */
+esp_err_t app_sleep_configure_sed(void);
+
+/**
+ * @brief Restore active Thread operational dataset from NVS on deep-sleep wake.
+ * Call this after esp_openthread_init() and before esp_openthread_auto_start().
+ */
+esp_err_t app_sleep_restore_dataset(void);
 
 #ifdef __cplusplus
 }

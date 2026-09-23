@@ -109,20 +109,41 @@ static void handler_cmd_get(coap_resource_t *resource,
                              const coap_string_t *query,
                              coap_pdu_t *response)
 {
-    /*
-     * The EUI-64 of the requesting node is embedded in the request query:
-     * /cmd?eui=<hex16>
-     * In a full implementation, parse query. Here we read from the CoAP
-     * payload which carries the EUI-64 (4 bytes for simplicity demo).
-     */
-    const uint8_t *data;
-    size_t len, offset, total;
     uint64_t eui64 = 0;
 
-    if (coap_get_data_large(request, &len, &data, &offset, &total) &&
-        len >= sizeof(uint64_t)) {
-        memcpy(&eui64, data, sizeof(eui64));
-    } else {
+    /* 1. Try parsing EUI-64 from URI query: /cmd?eui=<hex16> */
+    if (query && query->s && query->length >= 4) {
+        char qbuf[64] = {0};
+        size_t qlen = query->length < sizeof(qbuf) - 1 ? query->length : sizeof(qbuf) - 1;
+        memcpy(qbuf, query->s, qlen);
+        char *p = strstr(qbuf, "eui=");
+        if (p) {
+            eui64 = strtoull(p + 4, NULL, 16);
+        }
+    }
+
+    /* 2. Fallback: match requesting node by IPv6 source address */
+    if (eui64 == 0) {
+        char ipv6[DEVICE_ADDR_LEN] = {0};
+        session_ipv6_str(session, ipv6, sizeof(ipv6));
+        app_device_entry_t dev;
+        if (app_device_registry_get_by_ipv6(ipv6, &dev) == ESP_OK) {
+            eui64 = dev.eui64;
+        }
+    }
+
+    /* 3. Fallback: check if EUI-64 was passed in request payload */
+    if (eui64 == 0) {
+        const uint8_t *data;
+        size_t len, offset, total;
+        if (coap_get_data_large(request, &len, &data, &offset, &total) &&
+            len >= sizeof(uint64_t)) {
+            memcpy(&eui64, data, sizeof(eui64));
+        }
+    }
+
+    if (eui64 == 0) {
+        ESP_LOGW(TAG, "/cmd: Unable to determine requesting node EUI-64");
         coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_REQUEST);
         return;
     }

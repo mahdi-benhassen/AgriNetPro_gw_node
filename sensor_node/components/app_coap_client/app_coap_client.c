@@ -15,6 +15,7 @@
 #include "esp_log.h"
 #include "esp_openthread.h"
 #include "esp_openthread_types.h"
+#include "esp_openthread_lock.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -31,9 +32,10 @@
 static const char *TAG = TAG_COAP;
 
 /* ─── State ───────────────────────────────────────────────────────────────── */
-static coap_context_t  *s_ctx      = NULL;
-static SemaphoreHandle_t s_mutex   = NULL;
-static uint16_t          s_seq_num = 0;
+static coap_context_t  *s_ctx        = NULL;
+static SemaphoreHandle_t s_mutex     = NULL;
+static uint16_t          s_seq_num   = 0;
+static uint64_t          s_node_eui64 = 0;
 
 /* ─── Internal: resolve BR address ───────────────────────────────────────────
  * In a real deployment the BR registers itself via SRP with service name
@@ -89,6 +91,7 @@ static coap_response_t coap_response_handler(coap_session_t *session,
 static esp_err_t coap_send_request(coap_request_t method,
                                    coap_pdu_type_t msg_type,
                                    const char *uri_path,
+                                   const char *uri_query,
                                    const uint8_t *payload,
                                    size_t payload_len,
                                    uint8_t *resp_buf,
@@ -120,17 +123,30 @@ static esp_err_t coap_send_request(coap_request_t method,
         return ESP_ERR_NO_MEM;
     }
 
-    /* Add URI path option */
+    /* Add URI path option (strip leading slash if present) */
+    const char *path = uri_path;
+    if (path && *path == '/') path++;
     coap_optlist_t *optlist = NULL;
     coap_insert_optlist(&optlist,
         coap_new_optlist(COAP_OPTION_URI_PATH,
-                         strlen(uri_path), (const uint8_t *)uri_path));
+                         strlen(path), (const uint8_t *)path));
     coap_add_optlist_pdu(pdu, &optlist);
     coap_delete_optlist(optlist);
+
+    /* Add URI query option if provided */
+    if (uri_query && strlen(uri_query)) {
+        optlist = NULL;
+        coap_insert_optlist(&optlist,
+            coap_new_optlist(COAP_OPTION_URI_QUERY,
+                             strlen(uri_query), (const uint8_t *)uri_query));
+        coap_add_optlist_pdu(pdu, &optlist);
+        coap_delete_optlist(optlist);
+    }
 
     /* Content-Format: application/octet-stream */
     if (payload && payload_len) {
         uint8_t cf_buf[2];
+        optlist = NULL;
         coap_insert_optlist(&optlist,
             coap_new_optlist(COAP_OPTION_CONTENT_FORMAT,
                              coap_encode_var_safe(cf_buf, sizeof(cf_buf),
@@ -198,12 +214,17 @@ esp_err_t app_coap_client_register(const char *label)
 {
     if (!s_ctx || !s_mutex) return ESP_ERR_INVALID_STATE;
 
-    /* Build the node EUI-64 from Thread stack */
-    otInstance         *ot  = esp_openthread_get_instance();
-    const otExtAddress *ext = otLinkGetExtendedAddress(ot);
-    uint64_t eui64 = 0;
-    for (int i = 0; i < 8; i++) {
-        eui64 = (eui64 << 8) | ext->m8[i];
+    /* Build and cache the node EUI-64 from Thread stack with lock */
+    if (s_node_eui64 == 0) {
+        esp_openthread_lock_acquire(portMAX_DELAY);
+        otInstance         *ot  = esp_openthread_get_instance();
+        if (ot) {
+            const otExtAddress *ext = otLinkGetExtendedAddress(ot);
+            for (int i = 0; i < 8; i++) {
+                s_node_eui64 = (s_node_eui64 << 8) | ext->m8[i];
+            }
+        }
+        esp_openthread_lock_release();
     }
 
     app_node_reg_payload_t reg = {
@@ -211,7 +232,7 @@ esp_err_t app_coap_client_register(const char *label)
         .sensor_type       = SENSOR_TYPE_TEMP_HUMIDITY,
         .fw_major          = APP_FW_MAJOR,
         .fw_minor          = APP_FW_MINOR,
-        .eui64             = eui64,
+        .eui64             = s_node_eui64,
         .report_interval_s = SENSOR_REPORT_INTERVAL_S,
         .sleep_interval_s  = SENSOR_SLEEP_DURATION_S,
     };
@@ -221,13 +242,14 @@ esp_err_t app_coap_client_register(const char *label)
     esp_err_t ret = coap_send_request(COAP_REQUEST_POST,
                                       COAP_MESSAGE_CON,
                                       COAP_URI_SENSOR_REG,
+                                      NULL,
                                       (uint8_t *)&reg, sizeof(reg),
                                       NULL, NULL);
     xSemaphoreGive(s_mutex);
 
     if (ret == ESP_OK) {
         ESP_LOGI(TAG, "Node registered: label='%s' eui64=%016llX",
-                 reg.label, (unsigned long long)eui64);
+                 reg.label, (unsigned long long)s_node_eui64);
     }
     return ret;
 }
@@ -236,21 +258,28 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading)
 {
     if (!s_ctx || !s_mutex) return ESP_ERR_INVALID_STATE;
 
-    otInstance         *ot  = esp_openthread_get_instance();
-    const otExtAddress *ext = otLinkGetExtendedAddress(ot);
-    uint64_t eui64 = 0;
-    for (int i = 0; i < 8; i++) eui64 = (eui64 << 8) | ext->m8[i];
+    int16_t rssi = 0;
+    esp_openthread_lock_acquire(portMAX_DELAY);
+    otInstance *ot = esp_openthread_get_instance();
+    if (ot) {
+        rssi = (int16_t)otPlatRadioGetRssi(ot);
+        if (s_node_eui64 == 0) {
+            const otExtAddress *ext = otLinkGetExtendedAddress(ot);
+            for (int i = 0; i < 8; i++) s_node_eui64 = (s_node_eui64 << 8) | ext->m8[i];
+        }
+    }
+    esp_openthread_lock_release();
 
     app_sensor_payload_t payload = {
         .version       = APP_PROTO_VERSION,
         .sensor_type   = SENSOR_TYPE_TEMP_HUMIDITY,
         .node_flags    = 0,
-        .eui64         = eui64,
+        .eui64         = s_node_eui64,
         .uptime_s      = (uint32_t)(esp_timer_get_time() / 1000000ULL),
         .temperature_c = TEMP_FLOAT_TO_RAW(reading->temperature_c),
         .humidity_pct  = HUM_FLOAT_TO_RAW(reading->humidity_pct),
         .battery_mv    = app_sensor_battery_mv(),
-        .rssi_dbm      = (int16_t)otPlatRadioGetRssi(ot),
+        .rssi_dbm      = rssi,
         .seq_num       = s_seq_num++,
     };
 
@@ -265,6 +294,7 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading)
     esp_err_t ret = coap_send_request(COAP_REQUEST_POST,
                                       COAP_MESSAGE_NON,
                                       COAP_URI_SENSOR_DATA,
+                                      NULL,
                                       (uint8_t *)&payload, sizeof(payload),
                                       NULL, NULL);
     xSemaphoreGive(s_mutex);
@@ -286,10 +316,16 @@ esp_err_t app_coap_client_poll_cmd(app_cmd_payload_t *cmd)
     uint8_t buf[sizeof(app_cmd_payload_t)];
     size_t  len = sizeof(buf);
 
+    char query[32] = {0};
+    if (s_node_eui64 != 0) {
+        snprintf(query, sizeof(query), "eui=%016llX", (unsigned long long)s_node_eui64);
+    }
+
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     esp_err_t ret = coap_send_request(COAP_REQUEST_GET,
                                       COAP_MESSAGE_CON,
                                       COAP_URI_CMD_GET,
+                                      query,
                                       NULL, 0,
                                       buf, &len);
     xSemaphoreGive(s_mutex);

@@ -124,6 +124,23 @@ int app_device_registry_count(void);
  */
 void app_device_registry_set_telemetry_cb(app_device_telemetry_cb_t cb);
 
+/** @brief Callback invoked when a device changes online/offline status. */
+typedef void (*app_device_status_cb_t)(const app_device_entry_t *dev, bool online);
+
+/**
+ * @brief Look up a device by its IPv6 address.
+ *
+ * @param ipv6_str IPv6 address string.
+ * @param[out] out Filled with a snapshot of the entry.
+ * @return ESP_OK if found, ESP_ERR_NOT_FOUND otherwise.
+ */
+esp_err_t app_device_registry_get_by_ipv6(const char *ipv6_str, app_device_entry_t *out);
+
+/**
+ * @brief Register a callback invoked when a device status changes.
+ */
+void app_device_registry_set_status_cb(app_device_status_cb_t cb);
+
 /**
  * @brief Sweep offline nodes (call periodically from a timer task).
  */

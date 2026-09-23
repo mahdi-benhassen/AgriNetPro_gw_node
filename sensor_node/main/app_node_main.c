@@ -65,6 +65,9 @@ static void ot_task(void *arg)
 
     /* Launch OpenThread main loop — this never returns */
     ESP_ERROR_CHECK(esp_openthread_init(&ot_cfg));
+    if (app_sleep_is_wakeup_from_deep()) {
+        app_sleep_restore_dataset();
+    }
     ESP_ERROR_CHECK(esp_openthread_auto_start(NULL));   /* Joins / forms network */
     esp_openthread_launch_mainloop();
     esp_openthread_deinit();
@@ -128,6 +131,9 @@ static void sensor_task(void *arg)
 
     /* --- Wait for Thread to be ready ----------------------------------- */
     wait_for_thread_attach();
+
+    /* --- Configure Sleepy End Device now that stack is active ---------- */
+    app_sleep_configure_sed();
 
     /* --- First-boot registration --------------------------------------- */
     if (!is_wakeup) {
@@ -195,8 +201,12 @@ void app_main(void)
     /* Sensor hardware */
     ESP_ERROR_CHECK(app_sensor_init());
 
-    /* Sleep subsystem — configure Thread as Sleepy End Device */
+    /* Sleep subsystem — configure power management mode */
+#if defined(CONFIG_APP_SLEEP_MODE_DEEP)
+    ESP_ERROR_CHECK(app_sleep_init(SLEEP_MODE_DEEP));
+#else
     ESP_ERROR_CHECK(app_sleep_init(SLEEP_MODE_LIGHT));
+#endif
 
     /* CoAP client */
     ESP_ERROR_CHECK(app_coap_client_init());

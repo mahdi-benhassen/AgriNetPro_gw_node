@@ -201,6 +201,18 @@ static esp_err_t handler_get_status(httpd_req_t *req)
 
 
 
+/* ─── OPTIONS /api/v1/* (CORS preflight) ─────────────────────────────────── */
+
+static esp_err_t handler_options(httpd_req_t *req)
+{
+    httpd_resp_set_status(req, "204 No Content");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization");
+    httpd_resp_send(req, NULL, 0);
+    return ESP_OK;
+}
+
 /* ─── Public API ─────────────────────────────────────────────────────────── */
 
 esp_err_t app_rest_api_start(void)
@@ -215,14 +227,16 @@ esp_err_t app_rest_api_start(void)
 
     /* Register URI handlers */
     static const httpd_uri_t uris[] = {
+        { .uri = "/api/v1/*",
+          .method = HTTP_OPTIONS, .handler = handler_options },
         { .uri = "/api/v1/nodes",
-          .method = HTTP_GET, .handler = handler_get_nodes },
+          .method = HTTP_GET,     .handler = handler_get_nodes },
         { .uri = "/api/v1/nodes/*",
-          .method = HTTP_GET, .handler = handler_get_node  },
+          .method = HTTP_GET,     .handler = handler_get_node  },
         { .uri = "/api/v1/nodes/*/cmd",
-          .method = HTTP_POST, .handler = handler_post_cmd },
+          .method = HTTP_POST,    .handler = handler_post_cmd },
         { .uri = "/api/v1/status",
-          .method = HTTP_GET, .handler = handler_get_status },
+          .method = HTTP_GET,     .handler = handler_get_status },
     };
 
     for (size_t i = 0; i < sizeof(uris)/sizeof(uris[0]); i++) {

@@ -5,6 +5,7 @@
 #include "app_device_registry.h"
 #include "app_config.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <string.h>
@@ -13,10 +14,12 @@
 static const char *TAG = TAG_DEV_MGR;
 
 static app_device_entry_t        s_devices[DEVICE_REGISTRY_MAX_NODES];
-static int                        s_count  = 0;
-static SemaphoreHandle_t          s_mutex  = NULL;
-static app_device_telemetry_cb_t  s_telem_cb = NULL;
-static uint8_t                    s_cmd_id_counter = 0;
+static int64_t                   s_last_seen_mono[DEVICE_REGISTRY_MAX_NODES];
+static int                       s_count          = 0;
+static SemaphoreHandle_t         s_mutex          = NULL;
+static app_device_telemetry_cb_t s_telem_cb       = NULL;
+static app_device_status_cb_t    s_status_cb      = NULL;
+static uint8_t                   s_cmd_id_counter = 0;
 
 /* ─── Internal helpers ────────────────────────────────────────────────────── */
 
@@ -78,6 +81,7 @@ esp_err_t app_device_registry_register(const app_node_reg_payload_t *reg,
     e->report_interval_s = reg->report_interval_s;
     e->online            = true;
     e->last_seen         = time(NULL);
+    s_last_seen_mono[e - s_devices] = esp_timer_get_time();
 
     xSemaphoreGive(s_mutex);
     return ESP_OK;
@@ -105,6 +109,7 @@ esp_err_t app_device_registry_update(const app_sensor_payload_t *payload,
     if (ipv6_str) strncpy(e->ipv6_addr, ipv6_str, sizeof(e->ipv6_addr) - 1);
     e->online         = true;
     e->last_seen      = time(NULL);
+    s_last_seen_mono[e - s_devices] = esp_timer_get_time();
     e->last_reading   = *payload;
     e->total_reports++;
 
@@ -199,23 +204,53 @@ int app_device_registry_count(void)
     return n;
 }
 
+esp_err_t app_device_registry_get_by_ipv6(const char *ipv6_str, app_device_entry_t *out)
+{
+    if (!ipv6_str || !out) return ESP_ERR_INVALID_ARG;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    for (int i = 0; i < s_count; i++) {
+        if (s_devices[i].ipv6_addr[0] != '\0' && strcmp(s_devices[i].ipv6_addr, ipv6_str) == 0) {
+            *out = s_devices[i];
+            xSemaphoreGive(s_mutex);
+            return ESP_OK;
+        }
+    }
+    xSemaphoreGive(s_mutex);
+    return ESP_ERR_NOT_FOUND;
+}
+
 void app_device_registry_set_telemetry_cb(app_device_telemetry_cb_t cb)
 {
     s_telem_cb = cb;
 }
 
+void app_device_registry_set_status_cb(app_device_status_cb_t cb)
+{
+    s_status_cb = cb;
+}
+
 void app_device_registry_sweep_offline(void)
 {
-    time_t now = time(NULL);
+    int64_t now_us = esp_timer_get_time();
+    app_device_entry_t offline_list[DEVICE_REGISTRY_MAX_NODES];
+    int offline_count = 0;
+
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     for (int i = 0; i < s_count; i++) {
         if (s_devices[i].online &&
-            (now - s_devices[i].last_seen) > DEVICE_ONLINE_TTL_S) {
+            (now_us - s_last_seen_mono[i]) > ((int64_t)DEVICE_ONLINE_TTL_S * 1000000LL)) {
             s_devices[i].online = false;
+            offline_list[offline_count++] = s_devices[i];
             ESP_LOGW(TAG, "Node %016llX went offline (no report for >%ds)",
                      (unsigned long long)s_devices[i].eui64,
                      DEVICE_ONLINE_TTL_S);
         }
     }
     xSemaphoreGive(s_mutex);
+
+    if (s_status_cb) {
+        for (int i = 0; i < offline_count; i++) {
+            s_status_cb(&offline_list[i], false);
+        }
+    }
 }

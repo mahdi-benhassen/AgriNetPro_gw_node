@@ -221,11 +221,16 @@ static void mqtt_event_handler(void *arg,
     }
 }
 
-/* ─── Telemetry callback (registered with device registry) ──────────────── */
+/* ─── Telemetry & status callbacks (registered with device registry) ──── */
 static void on_telemetry(const app_device_entry_t *dev,
                           const app_sensor_payload_t *payload)
 {
     publish_telemetry(dev, payload);
+}
+
+static void on_device_status(const app_device_entry_t *dev, bool online)
+{
+    publish_status(dev->eui64, online);
 }
 
 /* ─── Public API ─────────────────────────────────────────────────────────── */
@@ -252,8 +257,9 @@ esp_err_t app_mqtt_bridge_start(void)
                                                    NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(s_client));
 
-    /* Hook into device registry to publish on every new reading */
+    /* Hook into device registry to publish on every new reading and status transition */
     app_device_registry_set_telemetry_cb(on_telemetry);
+    app_device_registry_set_status_cb(on_device_status);
 
     ESP_LOGI(TAG, "MQTT bridge started → %s", MQTT_BROKER_URI);
     return ESP_OK;

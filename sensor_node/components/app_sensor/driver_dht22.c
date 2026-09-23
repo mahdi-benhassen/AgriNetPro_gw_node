@@ -34,21 +34,43 @@ static esp_err_t dht22_read_raw(uint8_t data[5])
     esp_rom_delay_us(30);
     gpio_set_direction(DHT_GPIO, GPIO_MODE_INPUT);
 
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+    taskENTER_CRITICAL(&mux);
+
     /* Wait for DHT response */
-    if (dht_wait_for_level(0, 100) < 0) return ESP_ERR_TIMEOUT;
-    if (dht_wait_for_level(1, 100) < 0) return ESP_ERR_TIMEOUT;
-    if (dht_wait_for_level(0, 100) < 0) return ESP_ERR_TIMEOUT;
+    if (dht_wait_for_level(0, 100) < 0) {
+        taskEXIT_CRITICAL(&mux);
+        return ESP_ERR_TIMEOUT;
+    }
+    if (dht_wait_for_level(1, 100) < 0) {
+        taskEXIT_CRITICAL(&mux);
+        return ESP_ERR_TIMEOUT;
+    }
+    if (dht_wait_for_level(0, 100) < 0) {
+        taskEXIT_CRITICAL(&mux);
+        return ESP_ERR_TIMEOUT;
+    }
 
     /* Read 40 bits */
     memset(data, 0, 5);
+    esp_err_t ret = ESP_OK;
     for (int i = 0; i < 40; i++) {
-        if (dht_wait_for_level(1, 70) < 0) return ESP_ERR_TIMEOUT;
+        if (dht_wait_for_level(1, 70) < 0) {
+            ret = ESP_ERR_TIMEOUT;
+            break;
+        }
         int high_us = dht_wait_for_level(0, 90);
-        if (high_us < 0) return ESP_ERR_TIMEOUT;
+        if (high_us < 0) {
+            ret = ESP_ERR_TIMEOUT;
+            break;
+        }
         if (high_us > 40) {
             data[i / 8] |= (1 << (7 - (i % 8)));   /* '1' bit */
         }
     }
+
+    taskEXIT_CRITICAL(&mux);
+    if (ret != ESP_OK) return ret;
 
     /* Checksum */
     uint8_t chk = data[0] + data[1] + data[2] + data[3];
