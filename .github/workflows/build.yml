@@ -18,6 +18,8 @@ jobs:
         run: |
           # Clone the Thread Border Router repository (v1.3 is compatible with IDF v5.5)
           git clone -b v1.3 --recursive https://github.com/espressif/esp-thread-br.git
+          # Fix upstream v1.3 format extra arg warning in esp_ot_wifi_cmd.c for GCC 14
+          sed -i 's/otCliOutputFormat("None password\\n", password_str);/otCliOutputFormat("None password\\n");/' esp-thread-br/components/esp_ot_cli_extension/src/esp_ot_wifi_cmd.c || true
           
       - name: Build RCP (ESP32-H2)
         run: |
