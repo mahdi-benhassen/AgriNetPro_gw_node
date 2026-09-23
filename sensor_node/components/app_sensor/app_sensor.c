@@ -29,7 +29,8 @@ static const app_sensor_driver_t *s_driver =
 
 static app_sensor_reading_t s_last = { .temperature_c = 0.0f,
                                        .humidity_pct  = 0.0f,
-                                       .valid         = false };
+                                       .valid         = false,
+                                       .node_flags    = 0 };
 
 static adc_oneshot_unit_handle_t s_adc_handle = NULL;
 
@@ -44,6 +45,8 @@ esp_err_t app_sensor_init(void)
 
 esp_err_t app_sensor_read(app_sensor_reading_t *out)
 {
+    if (!out) return ESP_ERR_INVALID_ARG;
+    out->node_flags = 0;
     if (!s_driver || !s_driver->read) return ESP_ERR_NOT_SUPPORTED;
     
     esp_err_t err = s_driver->read(out);

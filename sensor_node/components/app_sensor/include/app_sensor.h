@@ -26,6 +26,7 @@ typedef struct {
     float    temperature_c;    /**< Temperature in degrees Celsius             */
     float    humidity_pct;     /**< Relative Humidity in %                     */
     bool     valid;            /**< false if the read failed (use last good)   */
+    uint8_t  node_flags;       /**< Optional status flags (NODE_FLAG_*)        */
 } app_sensor_reading_t;
 
 /**

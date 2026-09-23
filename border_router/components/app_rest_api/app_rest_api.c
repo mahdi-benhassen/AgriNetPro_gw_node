@@ -138,6 +138,7 @@ static esp_err_t handler_post_cmd(httpd_req_t *req)
     /* Parse EUI-64: second-to-last path segment */
     char uri_copy[128];
     strncpy(uri_copy, req->uri, sizeof(uri_copy) - 1);
+    uri_copy[sizeof(uri_copy) - 1] = '\0';
     /* Remove trailing /cmd */
     char *slash = strrchr(uri_copy, '/');
     if (slash) *slash = '\0';

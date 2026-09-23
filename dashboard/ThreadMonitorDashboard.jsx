@@ -16,6 +16,7 @@ export default function ThreadMonitorDashboard() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [commandStatus, setCommandStatus] = useState(null);
   const [intervalVal, setIntervalVal] = useState(30);
+  const [otaUrl, setOtaUrl] = useState('');
   const [history, setHistory] = useState({}); // eui64 -> array of history readings
 
   // Mock demo nodes for fallback when board is offline
@@ -29,6 +30,13 @@ export default function ThreadMonitorDashboard() {
       report_interval_s: 30,
       total_reports: 1420,
       last_seen: Math.floor(Date.now() / 1000) - 12,
+      last_ack: {
+        cmd_id: 101,
+        cmd_type: 1,
+        status_code: 0,
+        message: "Interval set to 30s",
+        ts: Math.floor(Date.now() / 1000) - 12
+      },
       reading: {
         temperature_c: 24.2,
         humidity_pct: 68.5,
@@ -388,148 +396,238 @@ export default function ThreadMonitorDashboard() {
                 <div>Interval: <span style={{ color: '#cbd5e1' }}>{node.report_interval_s || 30}s</span></div>
                 <div>Reports: <span style={{ color: '#cbd5e1' }}>{node.total_reports || 0}</span></div>
               </div>
+
+              {/* Last Command ACK Status */}
+              {node.last_ack && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '6px 8px',
+                  backgroundColor: node.last_ack.status_code === 0 ? '#064e3b30' : '#7f1d1d30',
+                  border: `1px solid ${node.last_ack.status_code === 0 ? '#05966960' : '#dc262660'}`,
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ color: node.last_ack.status_code === 0 ? '#34d399' : '#f87171', fontWeight: '500' }}>
+                    {node.last_ack.status_code === 0 ? '✓' : '✗'} ACK: {node.last_ack.message || (node.last_ack.status_code === 0 ? 'Success' : `Error ${node.last_ack.status_code}`)}
+                  </span>
+                  <span style={{ color: '#64748b', fontSize: '10px' }}>
+                    cmd #{node.last_ack.cmd_id}
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* Command Control Modal / Drawer for Selected Node */}
-      {selectedNode && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '380px',
-          backgroundColor: '#1e293b',
-          borderRadius: '16px',
-          border: '1px solid #38bdf8',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-          padding: '24px',
-          zIndex: 100
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', color: '#38bdf8' }}>
-              Command: {selectedNode.label}
-            </h3>
-            <button
-              onClick={() => setSelectedNode(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                fontSize: '18px'
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>
-            Send downlinks queued via Border Router for next SED poll cycle.
-          </div>
-
-          {commandStatus && (
-            <div style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              fontSize: '13px',
-              marginBottom: '14px',
-              backgroundColor: commandStatus.success ? '#065f46' : '#7f1d1d',
-              color: '#f8fafc'
-            }}>
-              {commandStatus.msg}
+      {selectedNode && (() => {
+        const activeNode = nodes.find(n => n.eui64 === selectedNode.eui64) || selectedNode;
+        return (
+          <div style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            width: '400px',
+            backgroundColor: '#1e293b',
+            borderRadius: '16px',
+            border: '1px solid #38bdf8',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            padding: '24px',
+            zIndex: 100
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#38bdf8' }}>
+                Command: {activeNode.label}
+              </h3>
+              <button
+                onClick={() => setSelectedNode(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '18px'
+                }}
+              >
+                ✕
+              </button>
             </div>
-          )}
 
-          {/* Action buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-            <button
-              onClick={() => sendCommand(selectedNode.eui64, CMD_LED_ON)}
-              style={{
-                padding: '10px',
-                borderRadius: '8px',
-                backgroundColor: '#0284c7',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '13px'
-              }}
-            >
-              💡 LED ON
-            </button>
+            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '14px' }}>
+              Send downlinks queued via Border Router for next SED poll cycle.
+            </div>
 
-            <button
-              onClick={() => sendCommand(selectedNode.eui64, CMD_LED_OFF)}
-              style={{
-                padding: '10px',
+            {/* Live ACK Indicator in Modal */}
+            {activeNode.last_ack && (
+              <div style={{
+                marginBottom: '14px',
+                padding: '8px 12px',
                 borderRadius: '8px',
-                backgroundColor: '#334155',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '13px'
-              }}
-            >
-              🌑 LED OFF
-            </button>
+                backgroundColor: activeNode.last_ack.status_code === 0 ? '#064e3b40' : '#7f1d1d40',
+                border: `1px solid ${activeNode.last_ack.status_code === 0 ? '#059669' : '#dc2626'}`,
+                fontSize: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span style={{ fontWeight: '600', color: activeNode.last_ack.status_code === 0 ? '#34d399' : '#f87171' }}>
+                    {activeNode.last_ack.status_code === 0 ? '✓ Execution Confirmed' : '✗ Execution Failed'}
+                  </span>
+                  <span style={{ color: '#94a3b8', fontSize: '11px' }}>Cmd #{activeNode.last_ack.cmd_id}</span>
+                </div>
+                <div style={{ color: '#cbd5e1' }}>"{activeNode.last_ack.message}"</div>
+              </div>
+            )}
 
-            <button
-              onClick={() => sendCommand(selectedNode.eui64, CMD_REBOOT)}
-              style={{
-                padding: '10px',
+            {commandStatus && (
+              <div style={{
+                padding: '8px 12px',
                 borderRadius: '8px',
-                backgroundColor: '#dc2626',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '13px'
-              }}
-            >
-              🔄 Reboot Node
-            </button>
+                fontSize: '13px',
+                marginBottom: '14px',
+                backgroundColor: commandStatus.success ? '#065f46' : '#7f1d1d',
+                color: '#f8fafc'
+              }}>
+                {commandStatus.msg}
+              </div>
+            )}
 
-            <button
-              onClick={() => sendCommand(selectedNode.eui64, CMD_SET_INTERVAL, intervalVal)}
-              style={{
-                padding: '10px',
-                borderRadius: '8px',
-                backgroundColor: '#0d9488',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500',
-                fontSize: '13px'
-              }}
-            >
-              ⏱ Set Interval
-            </button>
+            {/* Action buttons */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+              <button
+                onClick={() => sendCommand(activeNode.eui64, CMD_LED_ON)}
+                style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#0284c7',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13px'
+                }}
+              >
+                💡 LED ON
+              </button>
+
+              <button
+                onClick={() => sendCommand(activeNode.eui64, CMD_LED_OFF)}
+                style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#334155',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13px'
+                }}
+              >
+                🌑 LED OFF
+              </button>
+
+              <button
+                onClick={() => sendCommand(activeNode.eui64, CMD_REBOOT)}
+                style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13px'
+                }}
+              >
+                🔄 Reboot Node
+              </button>
+
+              <button
+                onClick={() => sendCommand(activeNode.eui64, CMD_SET_INTERVAL, intervalVal)}
+                style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#0d9488',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13px'
+                }}
+              >
+                ⏱ Set Interval
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <label style={{ fontSize: '12px', color: '#94a3b8' }}>Interval (s):</label>
+              <input
+                type="number"
+                min="5"
+                max="3600"
+                value={intervalVal}
+                onChange={(e) => setIntervalVal(+e.target.value)}
+                style={{
+                  backgroundColor: '#0f172a',
+                  border: '1px solid #334155',
+                  color: '#fff',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  width: '70px',
+                  fontSize: '13px'
+                }}
+              />
+            </div>
+
+            {/* Over-The-Air (OTA) Firmware Upgrade */}
+            <div style={{ borderTop: '1px solid #334155', paddingTop: '14px' }}>
+              <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: '500' }}>
+                Remote OTA Firmware Update (HTTPS):
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="https://.../firmware.bin"
+                  value={otaUrl}
+                  onChange={(e) => setOtaUrl(e.target.value)}
+                  style={{
+                    backgroundColor: '#0f172a',
+                    border: '1px solid #334155',
+                    color: '#fff',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    flex: 1
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (!otaUrl.trim()) {
+                      alert("Please enter a valid firmware URL");
+                      return;
+                    }
+                    sendCommand(activeNode.eui64, CMD_OTA_START, 0, otaUrl.trim());
+                  }}
+                  style={{
+                    backgroundColor: '#7c3aed',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '12px'
+                  }}
+                >
+                  🚀 OTA
+                </button>
+              </div>
+            </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8' }}>Interval (s):</label>
-            <input
-              type="number"
-              min="5"
-              max="3600"
-              value={intervalVal}
-              onChange={(e) => setIntervalVal(+e.target.value)}
-              style={{
-                backgroundColor: '#0f172a',
-                border: '1px solid #334155',
-                color: '#fff',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                width: '70px',
-                fontSize: '13px'
-              }}
-            />
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

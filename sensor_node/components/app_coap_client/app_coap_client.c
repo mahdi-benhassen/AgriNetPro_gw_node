@@ -290,7 +290,7 @@ esp_err_t app_coap_client_send(const app_sensor_reading_t *reading)
     app_sensor_payload_t payload = {
         .version       = APP_PROTO_VERSION,
         .sensor_type   = SENSOR_TYPE_TEMP_HUMIDITY,
-        .node_flags    = 0,
+        .node_flags    = reading->node_flags,
         .eui64         = s_node_eui64,
         .uptime_s      = (uint32_t)(esp_timer_get_time() / 1000000ULL),
         .temperature_c = TEMP_FLOAT_TO_RAW(reading->temperature_c),

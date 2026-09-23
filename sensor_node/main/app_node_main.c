@@ -98,6 +98,8 @@ static void wait_for_thread_attach(void)
 }
 
 /* ─── OTA Worker Task ─────────────────────────────────────────────────────── */
+static volatile bool s_ota_in_progress = false;
+
 typedef struct {
     uint8_t cmd_id;
     char    url[60];
@@ -127,6 +129,7 @@ static void ota_worker_task(void *pvParameters)
         esp_restart();
     } else {
         ESP_LOGE(TAG, "OTA upgrade failed: %s", esp_err_to_name(ota_res));
+        s_ota_in_progress = false;
         app_coap_client_send_ack(arg->cmd_id, CMD_OTA_START, CMD_ACK_ERR_OTA_FAILED, "OTA flash failed");
     }
 
@@ -165,6 +168,7 @@ static void handle_command(const app_cmd_payload_t *cmd)
         if (strlen(cmd->cmd_payload) > 0) {
             ota_task_arg_t *arg = (ota_task_arg_t *)malloc(sizeof(ota_task_arg_t));
             if (arg) {
+                s_ota_in_progress = true;
                 arg->cmd_id = cmd->cmd_id;
                 strncpy(arg->url, cmd->cmd_payload, sizeof(arg->url) - 1);
                 arg->url[sizeof(arg->url) - 1] = '\0';
@@ -215,6 +219,11 @@ static void sensor_task(void *arg)
             reading.valid = false;
         }
 
+        if (s_ota_in_progress) {
+            /* Flag that OTA update is in flight */
+            reading.node_flags |= NODE_FLAG_OTA_PENDING;
+        }
+
         /* 2. Upload over CoAP */
         for (int attempt = 0; attempt < COAP_MAX_RETRIES; attempt++) {
             esp_err_t cret = app_coap_client_send(&reading);
@@ -231,8 +240,13 @@ static void sensor_task(void *arg)
             handle_command(&cmd);
         }
 
-        /* 4. Sleep until next report */
-        app_sleep_enter(SENSOR_SLEEP_DURATION_S * 1000UL);
+        /* 4. Sleep until next report (skip sleep if OTA is downloading) */
+        if (s_ota_in_progress) {
+            ESP_LOGI(TAG, "OTA in progress — delaying 2s instead of sleeping");
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        } else {
+            app_sleep_enter(SENSOR_SLEEP_DURATION_S * 1000UL);
+        }
     }
 }
 
