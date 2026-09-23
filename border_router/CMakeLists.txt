@@ -13,4 +13,4 @@ project(border_router_app)
 
 # Ensure the common header directory is on the include path for all components
 idf_build_set_property(COMPILE_OPTIONS "-I${CMAKE_CURRENT_SOURCE_DIR}/../common" APPEND)
-idf_build_set_property(COMPILE_OPTIONS "-Wno-error=format-extra-args" APPEND)
+idf_build_set_property(COMPILE_OPTIONS "-Wno-error=format" APPEND)
