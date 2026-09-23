@@ -17,5 +17,5 @@ idf_component_register(
         esp_https_ota
         esp_http_client
         app_update
-        esp_crt_bundle
+        mbedtls
 )

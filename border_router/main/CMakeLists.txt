@@ -21,7 +21,7 @@ idf_component_register(
         vfs
         esp_driver_uart
         espressif__mdns
-        esp_crt_bundle
+        mbedtls
 )
 
 # Force openthread to depend on mdns and lwip so the linker places them AFTER openthread.
